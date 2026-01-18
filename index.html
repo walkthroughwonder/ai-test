@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        .container {
+            text-align: center;
+            padding: 20px;
+        }
+
+        #visualizer {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .file-label {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+        }
+
+        .file-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(56, 239, 125, 0.4);
+        }
+
+        #status {
+            margin-top: 15px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .viz-modes {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .mode-btn {
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+
+        .mode-btn.active {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Audio Visualizer</h1>
+
+        <canvas id="visualizer" width="800" height="300"></canvas>
+
+        <div class="controls">
+            <input type="file" id="fileInput" accept="audio/*">
+            <label for="fileInput" class="file-label">Choose Audio File</label>
+
+            <button id="micBtn" class="btn btn-primary">Use Microphone</button>
+            <button id="playBtn" class="btn btn-secondary" disabled>Play</button>
+            <button id="stopBtn" class="btn btn-secondary" disabled>Stop</button>
+        </div>
+
+        <div class="viz-modes">
+            <button class="btn btn-secondary mode-btn active" data-mode="bars">Bars</button>
+            <button class="btn btn-secondary mode-btn" data-mode="wave">Wave</button>
+            <button class="btn btn-secondary mode-btn" data-mode="circle">Circle</button>
+        </div>
+
+        <p id="status">Choose an audio file or use your microphone</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('visualizer');
+        const ctx = canvas.getContext('2d');
+        const fileInput = document.getElementById('fileInput');
+        const micBtn = document.getElementById('micBtn');
+        const playBtn = document.getElementById('playBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const status = document.getElementById('status');
+        const modeBtns = document.querySelectorAll('.mode-btn');
+
+        let audioContext;
+        let analyser;
+        let source;
+        let audioElement;
+        let animationId;
+        let visualizationMode = 'bars';
+        let isPlaying = false;
+        let isMicActive = false;
+
+        // Initialize Audio Context
+        function initAudioContext() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                analyser.connect(audioContext.destination);
+            }
+        }
+
+        // Handle file input
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            stopVisualization();
+            initAudioContext();
+
+            if (audioElement) {
+                audioElement.pause();
+                audioElement = null;
+            }
+
+            audioElement = new Audio();
+            audioElement.src = URL.createObjectURL(file);
+
+            audioElement.addEventListener('canplaythrough', () => {
+                if (source) source.disconnect();
+                source = audioContext.createMediaElementSource(audioElement);
+                source.connect(analyser);
+
+                playBtn.disabled = false;
+                stopBtn.disabled = false;
+                status.textContent = `Loaded: ${file.name}`;
+            });
+
+            audioElement.addEventListener('ended', () => {
+                isPlaying = false;
+                playBtn.textContent = 'Play';
+            });
+        });
+
+        // Handle microphone input
+        micBtn.addEventListener('click', async () => {
+            if (isMicActive) {
+                stopVisualization();
+                isMicActive = false;
+                micBtn.textContent = 'Use Microphone';
+                status.textContent = 'Microphone stopped';
+                return;
+            }
+
+            try {
+                initAudioContext();
+
+                if (audioElement) {
+                    audioElement.pause();
+                }
+
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                if (source) source.disconnect();
+                source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser);
+
+                // Don't connect to destination to prevent feedback
+                analyser.disconnect();
+
+                isMicActive = true;
+                micBtn.textContent = 'Stop Microphone';
+                status.textContent = 'Microphone active';
+
+                startVisualization();
+            } catch (err) {
+                status.textContent = 'Microphone access denied';
+                console.error('Microphone error:', err);
+            }
+        });
+
+        // Play button
+        playBtn.addEventListener('click', () => {
+            if (!audioElement) return;
+
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+
+            if (isPlaying) {
+                audioElement.pause();
+                isPlaying = false;
+                playBtn.textContent = 'Play';
+                cancelAnimationFrame(animationId);
+            } else {
+                audioElement.play();
+                isPlaying = true;
+                playBtn.textContent = 'Pause';
+                startVisualization();
+            }
+        });
+
+        // Stop button
+        stopBtn.addEventListener('click', () => {
+            if (audioElement) {
+                audioElement.pause();
+                audioElement.currentTime = 0;
+                isPlaying = false;
+                playBtn.textContent = 'Play';
+            }
+            stopVisualization();
+        });
+
+        // Mode buttons
+        modeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                modeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                visualizationMode = btn.dataset.mode;
+            });
+        });
+
+        // Start visualization
+        function startVisualization() {
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            function draw() {
+                animationId = requestAnimationFrame(draw);
+
+                analyser.getByteFrequencyData(dataArray);
+
+                // Clear canvas
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                switch (visualizationMode) {
+                    case 'bars':
+                        drawBars(dataArray, bufferLength);
+                        break;
+                    case 'wave':
+                        drawWave(dataArray, bufferLength);
+                        break;
+                    case 'circle':
+                        drawCircle(dataArray, bufferLength);
+                        break;
+                }
+            }
+
+            draw();
+        }
+
+        // Draw bars visualization
+        function drawBars(dataArray, bufferLength) {
+            const barWidth = (canvas.width / bufferLength) * 2.5;
+            let x = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                const barHeight = (dataArray[i] / 255) * canvas.height * 0.8;
+
+                const hue = (i / bufferLength) * 360;
+                ctx.fillStyle = `hsl(${hue}, 80%, 50%)`;
+
+                ctx.fillRect(x, canvas.height - barHeight, barWidth - 2, barHeight);
+                x += barWidth;
+            }
+        }
+
+        // Draw wave visualization
+        function drawWave(dataArray, bufferLength) {
+            analyser.getByteTimeDomainData(dataArray);
+
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#667eea';
+            ctx.beginPath();
+
+            const sliceWidth = canvas.width / bufferLength;
+            let x = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                const v = dataArray[i] / 128.0;
+                const y = (v * canvas.height) / 2;
+
+                if (i === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+
+                x += sliceWidth;
+            }
+
+            ctx.lineTo(canvas.width, canvas.height / 2);
+            ctx.stroke();
+
+            // Add glow effect
+            ctx.shadowBlur = 15;
+            ctx.shadowColor = '#667eea';
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+
+        // Draw circle visualization
+        function drawCircle(dataArray, bufferLength) {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = 80;
+
+            for (let i = 0; i < bufferLength; i++) {
+                const barHeight = (dataArray[i] / 255) * 80;
+                const angle = (i / bufferLength) * Math.PI * 2;
+
+                const x1 = centerX + Math.cos(angle) * radius;
+                const y1 = centerY + Math.sin(angle) * radius;
+                const x2 = centerX + Math.cos(angle) * (radius + barHeight);
+                const y2 = centerY + Math.sin(angle) * (radius + barHeight);
+
+                const hue = (i / bufferLength) * 360;
+                ctx.strokeStyle = `hsl(${hue}, 80%, 50%)`;
+                ctx.lineWidth = 3;
+
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+
+            // Draw center circle
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius - 5, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        // Stop visualization
+        function stopVisualization() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Initial canvas state
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    </script>
+</body>
+</html>
