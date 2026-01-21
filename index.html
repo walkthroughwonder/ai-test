@@ -319,7 +319,6 @@
     let scene, camera, renderer, composer, controls, bloomPass, afterimagePass, kaleidoscopePass;
     let particles, sparkles, stars;
     let orbitingRings = [];
-    let shockwaves = [];
     let clock = new THREE.Clock();
     let currentPattern = 0, isTrans = false, prog = 0;
     const morphSpeed = 0.03;
@@ -422,7 +421,6 @@
             const dir = vector.sub(camera.position).normalize();
             const pos = camera.position.clone().add(dir.multiplyScalar(50));
             spawnBurst(pos);
-            spawnShockwave(pos);
         }
     });
 
@@ -480,44 +478,6 @@
         particles.geometry.attributes.position.needsUpdate = true;
     }
 
-    // Create shockwave ring
-    function spawnShockwave(position) {
-        const geometry = new THREE.RingGeometry(0.1, 2, 64);
-        const material = new THREE.ShaderMaterial({
-            uniforms: {
-                time: { value: 0 },
-                color: { value: new THREE.Color(0x00ffff) }
-            },
-            vertexShader: `
-                varying vec2 vUv;
-                void main() {
-                    vUv = uv;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                uniform float time;
-                uniform vec3 color;
-                varying vec2 vUv;
-                void main() {
-                    float alpha = 1.0 - time;
-                    alpha *= smoothstep(0.0, 0.3, vUv.x) * smoothstep(1.0, 0.7, vUv.x);
-                    gl_FragColor = vec4(color, alpha * 0.6);
-                }
-            `,
-            transparent: true,
-            side: THREE.DoubleSide,
-            depthWrite: false,
-            blending: THREE.AdditiveBlending
-        });
-
-        const ring = new THREE.Mesh(geometry, material);
-        ring.position.copy(position);
-        ring.lookAt(camera.position);
-        ring.userData = { birth: clock.getElapsedTime(), maxLife: 1.5 };
-        scene.add(ring);
-        shockwaves.push(ring);
-    }
 
     const meterBars = [
         document.getElementById('bar1'),
@@ -1400,39 +1360,6 @@
         }
     }
 
-    // Update shockwaves
-    function updateShockwaves() {
-        const t = clock.getElapsedTime();
-        for (let i = shockwaves.length - 1; i >= 0; i--) {
-            const ring = shockwaves[i];
-            const age = t - ring.userData.birth;
-            const life = age / ring.userData.maxLife;
-
-            if (life >= 1) {
-                scene.remove(ring);
-                ring.geometry.dispose();
-                ring.material.dispose();
-                shockwaves.splice(i, 1);
-            } else {
-                // Expand ring
-                const scale = 1 + life * 40;
-                ring.scale.set(scale, scale, scale);
-                ring.material.uniforms.time.value = life;
-                ring.lookAt(camera.position);
-            }
-        }
-    }
-
-    // Spawn shockwave on bass hit - rate limited
-    let lastShockwaveTime = 0;
-    function triggerBassShockwave() {
-        const now = performance.now();
-        if (bassLevel > 0.8 && now - lastShockwaveTime > 1000) { // Max 1 per second
-            lastShockwaveTime = now;
-            spawnShockwave(new THREE.Vector3(0, 0, 0));
-        }
-    }
-
     // Three.js functions
     function init() {
         scene = new THREE.Scene();
@@ -1643,10 +1570,6 @@
             const ringScale = 1 + bassLevel * 0.2;
             ring.scale.set(ringScale, ringScale, ringScale);
         });
-
-        // Update shockwaves
-        updateShockwaves();
-        triggerBassShockwave();
 
         // Throttle CSS updates - only update every 3rd frame
         if (Math.floor(t * 60) % 3 === 0) {
