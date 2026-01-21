@@ -193,6 +193,7 @@
         <button id="micBtn" class="btn">Microphone</button>
         <button id="playBtn" class="btn" disabled>Play</button>
         <button id="morphBtn" class="btn">Morph</button>
+        <button id="autoCamBtn" class="btn">Auto Cam</button>
     </div>
 
     <div class="audio-meter">
@@ -250,7 +251,12 @@
     const micBtn = document.getElementById('micBtn');
     const playBtn = document.getElementById('playBtn');
     const morphBtn = document.getElementById('morphBtn');
+    const autoCamBtn = document.getElementById('autoCamBtn');
     const status = document.getElementById('status');
+
+    // Auto camera state
+    let autoCamEnabled = false;
+    let autoCamTime = 0;
     const meterBars = [
         document.getElementById('bar1'),
         document.getElementById('bar2'),
@@ -338,7 +344,210 @@
         return normalise(pts, 55);
     }
 
-    const PATTERNS = [torusKnot, halvorsen, dualHelix, deJong];
+    // Lorenz attractor - classic butterfly
+    function lorenz(n) {
+        const pts = [];
+        let x = 0.1, y = 0, z = 0;
+        const sigma = 10, rho = 28, beta = 8/3;
+        const dt = 0.005;
+        for (let i = 0; i < n * 20; i++) {
+            const dx = sigma * (y - x);
+            const dy = x * (rho - z) - y;
+            const dz = x * y - beta * z;
+            x += dx * dt;
+            y += dy * dt;
+            z += dz * dt;
+            if (i > 100 && i % 20 === 0) {
+                pts.push(new THREE.Vector3(x, y, z));
+            }
+            if (pts.length >= n) break;
+        }
+        while(pts.length < n) pts.push(pts[Math.floor(Math.random()*pts.length)].clone());
+        return normalise(pts, 55);
+    }
+
+    // Aizawa attractor - organic blob
+    function aizawa(n) {
+        const pts = [];
+        let x = 0.1, y = 0, z = 0;
+        const a = 0.95, b = 0.7, c = 0.6, d = 3.5, e = 0.25, f = 0.1;
+        const dt = 0.01;
+        for (let i = 0; i < n * 15; i++) {
+            const dx = (z - b) * x - d * y;
+            const dy = d * x + (z - b) * y;
+            const dz = c + a * z - (z * z * z) / 3 - (x * x + y * y) * (1 + e * z) + f * z * x * x * x;
+            x += dx * dt;
+            y += dy * dt;
+            z += dz * dt;
+            if (i > 100 && i % 15 === 0) {
+                pts.push(new THREE.Vector3(x, y, z));
+            }
+            if (pts.length >= n) break;
+        }
+        while(pts.length < n) pts.push(pts[Math.floor(Math.random()*pts.length)].clone());
+        return normalise(pts, 55);
+    }
+
+    // Thomas attractor - flowing curves
+    function thomas(n) {
+        const pts = [];
+        let x = 0.1, y = 0, z = 0;
+        const b = 0.208186;
+        const dt = 0.05;
+        for (let i = 0; i < n * 10; i++) {
+            const dx = Math.sin(y) - b * x;
+            const dy = Math.sin(z) - b * y;
+            const dz = Math.sin(x) - b * z;
+            x += dx * dt;
+            y += dy * dt;
+            z += dz * dt;
+            if (i > 50 && i % 10 === 0) {
+                pts.push(new THREE.Vector3(x, y, z));
+            }
+            if (pts.length >= n) break;
+        }
+        while(pts.length < n) pts.push(pts[Math.floor(Math.random()*pts.length)].clone());
+        return normalise(pts, 55);
+    }
+
+    // Clifford attractor - 2D made 3D
+    function clifford(n) {
+        const pts = [];
+        let x = 0.1, y = 0.1;
+        const a = -1.4, b = 1.6, c = 1.0, d = 0.7;
+        for (let i = 0; i < n; i++) {
+            const xn = Math.sin(a * y) + c * Math.cos(a * x);
+            const yn = Math.sin(b * x) + d * Math.cos(b * y);
+            x = xn;
+            y = yn;
+            const z = Math.sin(x + y) * Math.cos(x * y * 0.5);
+            pts.push(new THREE.Vector3(x, y, z));
+        }
+        return normalise(pts, 55);
+    }
+
+    // Rossler attractor - twisted band
+    function rossler(n) {
+        const pts = [];
+        let x = 0.1, y = 0, z = 0;
+        const a = 0.2, b = 0.2, c = 5.7;
+        const dt = 0.02;
+        for (let i = 0; i < n * 12; i++) {
+            const dx = -y - z;
+            const dy = x + a * y;
+            const dz = b + z * (x - c);
+            x += dx * dt;
+            y += dy * dt;
+            z += dz * dt;
+            if (i > 100 && i % 12 === 0) {
+                pts.push(new THREE.Vector3(x, y, z));
+            }
+            if (pts.length >= n) break;
+        }
+        while(pts.length < n) pts.push(pts[Math.floor(Math.random()*pts.length)].clone());
+        return normalise(pts, 55);
+    }
+
+    // Sphere with noise
+    function noisySphere(n) {
+        const pts = [];
+        for (let i = 0; i < n; i++) {
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            const r = 20 + Math.sin(theta * 8) * 3 + Math.cos(phi * 6) * 3;
+            const x = r * Math.sin(phi) * Math.cos(theta);
+            const y = r * Math.sin(phi) * Math.sin(theta);
+            const z = r * Math.cos(phi);
+            pts.push(new THREE.Vector3(x, y, z));
+        }
+        return normalise(pts, 55);
+    }
+
+    // Spiral galaxy
+    function spiralGalaxy(n) {
+        const pts = [];
+        const arms = 3;
+        for (let i = 0; i < n; i++) {
+            const arm = i % arms;
+            const t = (i / n) * 4;
+            const armAngle = (arm / arms) * Math.PI * 2;
+            const angle = t * Math.PI * 2 + armAngle;
+            const r = t * 12 + Math.random() * 5;
+            const x = Math.cos(angle) * r + (Math.random() - 0.5) * t * 3;
+            const z = Math.sin(angle) * r + (Math.random() - 0.5) * t * 3;
+            const y = (Math.random() - 0.5) * 3 * (1 + t * 0.5);
+            pts.push(new THREE.Vector3(x, y, z));
+        }
+        return normalise(pts, 60);
+    }
+
+    // Heart shape
+    function heart(n) {
+        const pts = [];
+        for (let i = 0; i < n; i++) {
+            const t = (i / n) * Math.PI * 2;
+            const u = Math.random() * Math.PI * 2;
+            const v = Math.random() * Math.PI;
+            // Heart surface parametric
+            const x = 16 * Math.pow(Math.sin(t), 3) * Math.sin(v) * Math.cos(u);
+            const y = (13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * Math.sin(v);
+            const z = 16 * Math.pow(Math.sin(t), 3) * Math.sin(v) * Math.sin(u);
+            pts.push(new THREE.Vector3(x, y, z));
+        }
+        return normalise(pts, 55);
+    }
+
+    // Mobius strip
+    function mobius(n) {
+        const pts = [];
+        for (let i = 0; i < n; i++) {
+            const u = (i / n) * Math.PI * 2;
+            const v = (Math.random() - 0.5) * 2;
+            const x = (1 + v / 2 * Math.cos(u / 2)) * Math.cos(u) * 15;
+            const y = (1 + v / 2 * Math.cos(u / 2)) * Math.sin(u) * 15;
+            const z = v / 2 * Math.sin(u / 2) * 15;
+            pts.push(new THREE.Vector3(x, y, z));
+        }
+        return normalise(pts, 55);
+    }
+
+    // Trefoil knot
+    function trefoil(n) {
+        const pts = [];
+        for (let i = 0; i < n; i++) {
+            const t = (i / n) * Math.PI * 2;
+            const r = Math.random() * 3;
+            const theta = Math.random() * Math.PI * 2;
+            const x = (Math.sin(t) + 2 * Math.sin(2 * t)) * 10 + r * Math.cos(theta);
+            const y = (Math.cos(t) - 2 * Math.cos(2 * t)) * 10 + r * Math.sin(theta);
+            const z = -Math.sin(3 * t) * 10 + r * Math.sin(theta);
+            pts.push(new THREE.Vector3(x, y, z));
+        }
+        return normalise(pts, 55);
+    }
+
+    // Figure 8 / Lemniscate in 3D
+    function lemniscate(n) {
+        const pts = [];
+        for (let i = 0; i < n; i++) {
+            const t = (i / n) * Math.PI * 2;
+            const a = 20;
+            const r = Math.random() * 4;
+            const phi = Math.random() * Math.PI * 2;
+            const x = a * Math.cos(t) / (1 + Math.sin(t) * Math.sin(t)) + r * Math.cos(phi) * 0.3;
+            const y = a * Math.sin(t) * Math.cos(t) / (1 + Math.sin(t) * Math.sin(t)) + r * Math.sin(phi) * 0.3;
+            const z = a * 0.3 * Math.sin(2 * t) + r * Math.sin(phi) * 0.3;
+            pts.push(new THREE.Vector3(x, y, z));
+        }
+        return normalise(pts, 55);
+    }
+
+    const PATTERNS = [
+        torusKnot, halvorsen, dualHelix, deJong,
+        lorenz, aizawa, thomas, clifford,
+        rossler, noisySphere, spiralGalaxy, heart,
+        mobius, trefoil, lemniscate
+    ];
 
     function createStars() {
         const geo = new THREE.BufferGeometry();
@@ -800,6 +1009,15 @@
         }
     });
 
+    autoCamBtn.addEventListener('click', () => {
+        autoCamEnabled = !autoCamEnabled;
+        autoCamBtn.textContent = autoCamEnabled ? 'Stop Cam' : 'Auto Cam';
+        autoCamBtn.classList.toggle('active', autoCamEnabled);
+        if (autoCamEnabled) {
+            autoCamTime = 0;
+        }
+    });
+
     // Three.js functions
     function init() {
         scene = new THREE.Scene();
@@ -822,6 +1040,67 @@
         controls.target.set(0, 0, 0);
         controls.autoRotate = true;
         controls.autoRotateSpeed = 0.5;
+
+        // Gradient background sphere
+        const bgGeo = new THREE.SphereGeometry(1500, 32, 32);
+        const bgMat = new THREE.ShaderMaterial({
+            uniforms: {
+                time: { value: 0 },
+                audioLevel: { value: 0 },
+                color1: { value: new THREE.Color(0x0a0015) },  // Deep purple-black
+                color2: { value: new THREE.Color(0x1a0a30) },  // Dark purple
+                color3: { value: new THREE.Color(0x0f1a40) },  // Dark blue
+                color4: { value: new THREE.Color(0x000510) }   // Near black blue
+            },
+            vertexShader: `
+                varying vec3 vWorldPosition;
+                void main() {
+                    vec4 worldPos = modelMatrix * vec4(position, 1.0);
+                    vWorldPosition = worldPos.xyz;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform float time;
+                uniform float audioLevel;
+                uniform vec3 color1;
+                uniform vec3 color2;
+                uniform vec3 color3;
+                uniform vec3 color4;
+                varying vec3 vWorldPosition;
+
+                void main() {
+                    vec3 dir = normalize(vWorldPosition);
+                    float y = dir.y * 0.5 + 0.5; // 0 at bottom, 1 at top
+
+                    // Multi-stop gradient
+                    vec3 col;
+                    if (y < 0.3) {
+                        col = mix(color4, color3, y / 0.3);
+                    } else if (y < 0.6) {
+                        col = mix(color3, color2, (y - 0.3) / 0.3);
+                    } else {
+                        col = mix(color2, color1, (y - 0.6) / 0.4);
+                    }
+
+                    // Subtle aurora effect
+                    float aurora = sin(dir.x * 3.0 + time * 0.2) * sin(dir.z * 2.0 + time * 0.15);
+                    aurora = aurora * 0.5 + 0.5;
+                    aurora *= smoothstep(0.3, 0.7, y) * smoothstep(1.0, 0.7, y);
+                    vec3 auroraColor = mix(vec3(0.1, 0.0, 0.3), vec3(0.0, 0.2, 0.4), sin(time * 0.1) * 0.5 + 0.5);
+                    col += auroraColor * aurora * 0.15 * (1.0 + audioLevel);
+
+                    // Audio reactive pulse
+                    col *= 1.0 + audioLevel * 0.2;
+
+                    gl_FragColor = vec4(col, 1.0);
+                }
+            `,
+            side: THREE.BackSide
+        });
+        const bgSphere = new THREE.Mesh(bgGeo, bgMat);
+        bgSphere.name = 'background';
+        scene.add(bgSphere);
 
         stars = createStars();
         scene.add(stars);
@@ -918,6 +1197,13 @@
         stars.material.uniforms.time.value = t;
         stars.material.uniforms.audioLevel.value = overallLevel;
 
+        // Update background gradient
+        const bg = scene.getObjectByName('background');
+        if (bg) {
+            bg.material.uniforms.time.value = t;
+            bg.material.uniforms.audioLevel.value = overallLevel;
+        }
+
         // Bloom - subtle glow
         bloomPass.strength = Math.min(0.6, 0.15 + bassLevel * 0.3 + highLevel * 0.15);
         bloomPass.radius = 0.3 + bassLevel * 0.3;
@@ -930,7 +1216,29 @@
         }
 
         // Dynamic FOV - zooms with bass for impact
-        camera.fov = 60 + bassLevel * 15;
+        let baseFov = 60;
+        if (autoCamEnabled) {
+            autoCamTime += dt;
+            // Smooth zoom in and out
+            const zoomCycle = Math.sin(autoCamTime * 0.3) * 0.5 + 0.5; // 0-1
+            const targetDist = 40 + zoomCycle * 100; // 40-140
+            const currentDist = camera.position.length();
+            const newDist = currentDist + (targetDist - currentDist) * 0.02;
+
+            // Orbit around - vertical wave
+            const orbitSpeed = 0.2;
+            const verticalWave = Math.sin(autoCamTime * 0.15) * 30;
+            const angle = autoCamTime * orbitSpeed;
+
+            camera.position.x = Math.cos(angle) * newDist;
+            camera.position.z = Math.sin(angle) * newDist;
+            camera.position.y = verticalWave;
+            camera.lookAt(0, 0, 0);
+
+            // Vary FOV with zoom
+            baseFov = 50 + (1 - zoomCycle) * 25;
+        }
+        camera.fov = baseFov + bassLevel * 15;
         camera.updateProjectionMatrix();
 
         // More motion blur/trails with audio
