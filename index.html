@@ -226,18 +226,24 @@
     const SPARK_COUNT = 2000;
     const STAR_COUNT = 7000;
 
-    let scene, camera, renderer, composer, controls, bloomPass;
+    let scene, camera, renderer, composer, controls, bloomPass, afterimagePass;
     let particles, sparkles, stars;
     let clock = new THREE.Clock();
     let currentPattern = 0, isTrans = false, prog = 0;
     const morphSpeed = 0.03;
 
-    // Audio-reactive parameters
+    // Audio-reactive parameters - CRANKED UP for dramatic response
     let audioScale = 1;
     let audioIntensity = 0;
     let beatDetected = false;
     let lastBeatTime = 0;
-    let beatThreshold = 0.7;
+    let beatThreshold = 0.35; // Much lower threshold for more morphs
+
+    // Sensitivity multipliers - makes small sounds have big impact
+    const SENSITIVITY = 4.0;        // Overall sensitivity boost
+    const BASS_MULT = 5.0;          // Bass impact multiplier
+    const MID_MULT = 4.0;           // Mid impact multiplier
+    const HIGH_MULT = 3.5;          // High impact multiplier
 
     // DOM elements
     const fileInput = document.getElementById('fileInput');
@@ -371,11 +377,14 @@
                 uniform float audioLevel;
                 varying vec3 vColor;
                 varying float vRnd;
+                varying float vAudio;
                 void main() {
                     vColor = color;
                     vRnd = random;
+                    vAudio = audioLevel;
                     vec4 mv = modelViewMatrix * vec4(position, 1.);
-                    float audioSize = 1.0 + audioLevel * 0.5;
+                    // Stars pulse dramatically with audio
+                    float audioSize = 1.0 + audioLevel * 2.5;
                     gl_PointSize = size * audioSize * (250. / -mv.z);
                     gl_Position = projectionMatrix * mv;
                 }`,
@@ -384,14 +393,19 @@
                 uniform float audioLevel;
                 varying vec3 vColor;
                 varying float vRnd;
+                varying float vAudio;
                 void main() {
                     vec2 uv = gl_PointCoord - 0.5;
                     float d = length(uv);
                     float a = 1.0 - smoothstep(0.4, 0.5, d);
-                    a *= 0.7 + 0.3 * sin(time * (0.6 + vRnd * 0.3) + vRnd * 5.);
-                    a *= 1.0 + audioLevel * 0.5;
+                    // Faster twinkle with audio
+                    float twinkleSpeed = 0.6 + vAudio * 3.0;
+                    a *= 0.5 + 0.5 * sin(time * twinkleSpeed + vRnd * 5.);
+                    a *= 1.0 + vAudio * 3.0; // Much brighter with audio
                     if (a < 0.02) discard;
-                    gl_FragColor = vec4(vColor, a);
+                    // Color shift toward white with audio
+                    vec3 col = mix(vColor, vec3(1.0), vAudio * 0.5);
+                    gl_FragColor = vec4(col, min(a, 1.0));
                 }`,
             transparent: true,
             depthWrite: false,
@@ -450,20 +464,38 @@
                 attribute vec3 random;
                 varying vec3 vCol;
                 varying float vR;
+                varying float vBass;
                 void main() {
                     vCol = color;
                     vR = random.z;
-                    vec3 p = position * audioScale;
-                    float t = time * 0.25 * random.z;
+                    vBass = bassLevel;
+
+                    // DRAMATIC scale pulsing with audio
+                    float dramaticScale = audioScale * (1.0 + bassLevel * 0.5);
+                    vec3 p = position * dramaticScale;
+
+                    // Faster, more reactive time
+                    float t = time * (0.4 + midLevel * 0.8) * random.z;
                     float ax = t + random.y, ay = t * 0.75 + random.x;
-                    float audioAmp = 1.0 + bassLevel * 2.0 + midLevel * 1.0;
-                    float amp = (0.6 + sin(random.x + t * 0.6) * 0.3) * random.z * audioAmp;
-                    p.x += sin(ax + p.y * 0.06 + random.x * 0.1) * amp;
-                    p.y += cos(ay + p.z * 0.06 + random.y * 0.1) * amp;
-                    p.z += sin(ax * 0.85 + p.x * 0.06 + random.z * 0.1) * amp;
+
+                    // MASSIVE audio amplitude - small sounds = big movement
+                    float audioAmp = 1.0 + bassLevel * 8.0 + midLevel * 5.0;
+                    float amp = (1.0 + sin(random.x + t * 0.6) * 0.5) * random.z * audioAmp;
+
+                    // Exaggerated wave displacement
+                    p.x += sin(ax + p.y * 0.08 + random.x * 0.2) * amp * 1.5;
+                    p.y += cos(ay + p.z * 0.08 + random.y * 0.2) * amp * 1.5;
+                    p.z += sin(ax * 0.85 + p.x * 0.08 + random.z * 0.2) * amp * 1.5;
+
+                    // Extra explosion on bass hits
+                    float explosion = bassLevel * bassLevel * 15.0;
+                    p += normalize(position) * explosion * random.z;
+
                     vec4 mv = modelViewMatrix * vec4(p, 1.);
-                    float pulse = 0.9 + 0.1 * sin(time * 1.15 + random.y);
-                    float audioSize = 1.0 + bassLevel * 0.5;
+
+                    // Dramatic size pulsing
+                    float pulse = 0.8 + 0.4 * sin(time * 2.0 + random.y);
+                    float audioSize = 1.0 + bassLevel * 2.0 + midLevel * 1.0;
                     gl_PointSize = size * pulse * audioSize * (350. / -mv.z);
                     gl_Position = projectionMatrix * mv;
                 }`,
@@ -471,8 +503,11 @@
                 uniform float time;
                 uniform float hueSpeed;
                 uniform float highLevel;
+                uniform float bassLevel;
+                uniform float midLevel;
                 varying vec3 vCol;
                 varying float vR;
+                varying float vBass;
 
                 vec3 hueShift(vec3 c, float h) {
                     const vec3 k = vec3(0.57735);
@@ -487,21 +522,38 @@
 
                     float core = smoothstep(0.05, 0.0, d);
                     float angle = atan(uv.y, uv.x);
-                    float flare = pow(max(0.0, sin(angle * 6.0 + time * 2.0 * vR)), 4.0);
+
+                    // More dramatic flare animation driven by audio
+                    float flareSpeed = 2.0 + highLevel * 8.0;
+                    float flare = pow(max(0.0, sin(angle * 6.0 + time * flareSpeed * vR)), 3.0);
                     flare *= smoothstep(0.5, 0.0, d);
+                    flare *= 1.0 + highLevel * 2.0; // Flares intensify with highs
+
                     float glow = smoothstep(0.4, 0.1, d);
+                    glow *= 1.0 + midLevel * 1.5; // Glow pulses with mids
 
-                    float alpha = core * 1.0 + flare * 0.5 + glow * 0.2;
-                    alpha *= 1.0 + highLevel * 0.5;
+                    // Brighter overall with audio
+                    float alpha = core * 1.2 + flare * 0.8 + glow * 0.4;
+                    alpha *= 1.0 + highLevel * 1.5 + bassLevel * 0.5;
 
-                    float hueAmount = hueSpeed + highLevel * 0.3;
+                    // DRAMATIC hue cycling - faster with more audio
+                    float hueAmount = hueSpeed + highLevel * 2.0 + bassLevel * 1.5;
                     vec3 color = hueShift(vCol, time * hueAmount);
+
+                    // Flash white on bass hits
+                    float flash = bassLevel * bassLevel * 0.6;
+                    color = mix(color, vec3(1.0), flash);
+
+                    // Saturation boost with audio
+                    float sat = 1.0 + midLevel * 0.5;
+                    color = mix(vec3(dot(color, vec3(0.299, 0.587, 0.114))), color, sat);
+
                     vec3 finalColor = mix(color, vec3(1.0, 0.95, 0.9), core);
                     finalColor = mix(finalColor, color, flare * 0.5 + glow * 0.5);
 
                     if (alpha < 0.01) discard;
 
-                    gl_FragColor = vec4(finalColor, alpha);
+                    gl_FragColor = vec4(finalColor, min(alpha, 1.0));
                 }`,
             transparent: true,
             depthWrite: false,
@@ -541,27 +593,37 @@
                 uniform float bassLevel;
                 attribute float size;
                 attribute vec3 random;
+                varying float vBass;
                 void main() {
-                    vec3 p = position * audioScale;
-                    float t = time * 0.25 * random.z;
+                    vBass = bassLevel;
+                    float dramaticScale = audioScale * (1.0 + bassLevel * 0.5);
+                    vec3 p = position * dramaticScale;
+                    float t = time * (0.4 + bassLevel * 0.8) * random.z;
                     float ax = t + random.y, ay = t * 0.75 + random.x;
-                    float audioAmp = 1.0 + bassLevel * 2.0;
-                    float amp = (0.6 + sin(random.x + t * 0.6) * 0.3) * random.z * audioAmp;
-                    p.x += sin(ax + p.y * 0.06 + random.x * 0.1) * amp;
-                    p.y += cos(ay + p.z * 0.06 + random.y * 0.1) * amp;
-                    p.z += sin(ax * 0.85 + p.x * 0.06 + random.z * 0.1) * amp;
+                    float audioAmp = 1.0 + bassLevel * 8.0;
+                    float amp = (1.0 + sin(random.x + t * 0.6) * 0.5) * random.z * audioAmp;
+                    p.x += sin(ax + p.y * 0.08 + random.x * 0.2) * amp * 1.5;
+                    p.y += cos(ay + p.z * 0.08 + random.y * 0.2) * amp * 1.5;
+                    p.z += sin(ax * 0.85 + p.x * 0.08 + random.z * 0.2) * amp * 1.5;
+                    // Explosion effect
+                    float explosion = bassLevel * bassLevel * 15.0;
+                    p += normalize(position) * explosion * random.z;
                     vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
-                    float audioSize = 1.0 + bassLevel * 0.8;
+                    float audioSize = 1.0 + bassLevel * 3.0;
                     gl_PointSize = size * audioSize * (300.0 / -mvPosition.z);
                     gl_Position = projectionMatrix * mvPosition;
                 }`,
             fragmentShader: `
                 uniform float time;
+                varying float vBass;
                 void main() {
                     float d = length(gl_PointCoord - vec2(0.5));
-                    float alpha = 1.0 - smoothstep(0.4, 0.5, d);
+                    float alpha = 1.0 - smoothstep(0.3, 0.5, d);
+                    alpha *= 1.0 + vBass * 2.0; // Brighter with bass
                     if (alpha < 0.01) discard;
-                    gl_FragColor = vec4(1.0, 1.0, 1.0, alpha);
+                    // Slight color tint on bass
+                    vec3 col = mix(vec3(1.0), vec3(1.0, 0.9, 0.8), vBass * 0.5);
+                    gl_FragColor = vec4(col, min(alpha, 1.0));
                 }`,
             transparent: true,
             depthWrite: false,
@@ -577,7 +639,9 @@
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             analyser = audioContext.createAnalyser();
             analyser.fftSize = 512;
-            analyser.smoothingTimeConstant = 0.8;
+            analyser.smoothingTimeConstant = 0.4; // Lower = faster response, more reactive
+            analyser.minDecibels = -90; // Capture quieter sounds
+            analyser.maxDecibels = -10;
         }
     }
 
@@ -602,26 +666,33 @@
             }
         }
 
-        bassLevel = (bassSum / bassEnd) / 255;
-        midLevel = (midSum / (midEnd - bassEnd)) / 255;
-        highLevel = (highSum / (frequencyData.length - midEnd)) / 255;
-        overallLevel = (bassLevel + midLevel + highLevel) / 3;
+        // Raw levels (0-1)
+        let rawBass = (bassSum / bassEnd) / 255;
+        let rawMid = (midSum / (midEnd - bassEnd)) / 255;
+        let rawHigh = (highSum / (frequencyData.length - midEnd)) / 255;
 
-        // Beat detection
+        // Apply power curve to exaggerate - sqrt makes small values bigger
+        // Then multiply for dramatic effect
+        bassLevel = Math.min(1, Math.pow(rawBass, 0.6) * BASS_MULT);
+        midLevel = Math.min(1, Math.pow(rawMid, 0.6) * MID_MULT);
+        highLevel = Math.min(1, Math.pow(rawHigh, 0.6) * HIGH_MULT);
+        overallLevel = Math.min(1, (bassLevel + midLevel + highLevel) / 3 * SENSITIVITY);
+
+        // Beat detection - more sensitive
         const now = performance.now();
-        if (bassLevel > beatThreshold && now - lastBeatTime > 300) {
+        if (rawBass > beatThreshold && now - lastBeatTime > 250) {
             beatDetected = true;
             lastBeatTime = now;
-            // Auto-morph on strong beats (optional)
-            if (bassLevel > 0.85 && !isTrans) {
+            // Auto-morph on beats
+            if (rawBass > 0.5 && !isTrans) {
                 beginMorph();
             }
         } else {
             beatDetected = false;
         }
 
-        // Update audio-reactive parameters
-        audioScale = 1 + bassLevel * 0.15;
+        // Update audio-reactive parameters - DRAMATIC scaling
+        audioScale = 1 + bassLevel * 0.6; // Was 0.15, now 0.6
         audioIntensity = overallLevel;
 
         // Update meter bars
@@ -631,8 +702,8 @@
             for (let j = 0; j < bandSize; j++) {
                 sum += frequencyData[i * bandSize + j];
             }
-            const avg = sum / bandSize / 255;
-            meterBars[i].style.height = (avg * 60) + 'px';
+            const avg = Math.pow(sum / bandSize / 255, 0.6) * 2; // Exaggerated meters
+            meterBars[i].style.height = Math.min(60, avg * 60) + 'px';
         }
     }
 
@@ -765,9 +836,9 @@
         composer.addPass(new RenderPass(scene, camera));
         bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.45, 0.5, 0.85);
         composer.addPass(bloomPass);
-        const after = new AfterimagePass();
-        after.uniforms.damp.value = 0.92;
-        composer.addPass(after);
+        afterimagePass = new AfterimagePass();
+        afterimagePass.uniforms.damp.value = 0.88; // More trails
+        composer.addPass(afterimagePass);
         composer.addPass(new OutputPass());
 
         applyPattern(currentPattern);
@@ -830,10 +901,10 @@
 
         controls.update();
 
-        // Audio-reactive rotation speed
-        controls.autoRotateSpeed = 0.5 + bassLevel * 2;
+        // DRAMATIC audio-reactive rotation - spins faster with bass
+        controls.autoRotateSpeed = 0.5 + bassLevel * 8;
 
-        // Update uniforms with audio data
+        // Update uniforms with EXAGGERATED audio data
         particles.material.uniforms.time.value = t;
         particles.material.uniforms.audioScale.value = audioScale;
         particles.material.uniforms.bassLevel.value = bassLevel;
@@ -847,8 +918,23 @@
         stars.material.uniforms.time.value = t;
         stars.material.uniforms.audioLevel.value = overallLevel;
 
-        // Audio-reactive bloom
-        bloomPass.strength = 0.45 + bassLevel * 0.8;
+        // DRAMATIC bloom - explodes with bass
+        bloomPass.strength = 0.3 + bassLevel * 2.5 + highLevel * 1.0;
+        bloomPass.radius = 0.5 + bassLevel * 0.8;
+
+        // Camera shake on big bass hits
+        if (bassLevel > 0.7) {
+            const shake = (bassLevel - 0.7) * 5;
+            camera.position.x += (Math.random() - 0.5) * shake;
+            camera.position.y += (Math.random() - 0.5) * shake;
+        }
+
+        // Dynamic FOV - zooms with bass for impact
+        camera.fov = 60 + bassLevel * 15;
+        camera.updateProjectionMatrix();
+
+        // More motion blur/trails with audio
+        afterimagePass.uniforms.damp.value = 0.88 + overallLevel * 0.08;
 
         if (isTrans) {
             prog += morphSpeed;
