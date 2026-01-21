@@ -311,10 +311,10 @@
     const frequencyData = new Uint8Array(256);
     let bassLevel = 0, midLevel = 0, highLevel = 0, overallLevel = 0;
 
-    // Three.js variables
-    const PARTICLE_COUNT = 15000;
-    const SPARK_COUNT = 2000;
-    const STAR_COUNT = 7000;
+    // Three.js variables - reduced for better performance
+    const PARTICLE_COUNT = 8000;
+    const SPARK_COUNT = 1000;
+    const STAR_COUNT = 3000;
 
     let scene, camera, renderer, composer, controls, bloomPass, afterimagePass, kaleidoscopePass;
     let particles, sparkles, stars;
@@ -1419,9 +1419,12 @@
         }
     }
 
-    // Spawn shockwave on bass hit
+    // Spawn shockwave on bass hit - rate limited
+    let lastShockwaveTime = 0;
     function triggerBassShockwave() {
-        if (bassLevel > 0.7 && Math.random() > 0.7) {
+        const now = performance.now();
+        if (bassLevel > 0.8 && now - lastShockwaveTime > 1000) { // Max 1 per second
+            lastShockwaveTime = now;
             spawnShockwave(new THREE.Vector3(0, 0, 0));
         }
     }
@@ -1434,8 +1437,8 @@
         camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 2500);
         camera.position.set(0, 0, 80);
 
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setPixelRatio(devicePixelRatio);
+        renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'high-performance' });
+        renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5)); // Cap pixel ratio for performance
         renderer.setSize(innerWidth, innerHeight);
         document.getElementById("container").appendChild(renderer.domElement);
 
@@ -1529,10 +1532,14 @@
 
         composer = new EffectComposer(renderer);
         composer.addPass(new RenderPass(scene, camera));
-        bloomPass = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.45, 0.5, 0.85);
+        // Reduced bloom resolution for performance
+        bloomPass = new UnrealBloomPass(
+            new THREE.Vector2(innerWidth / 2, innerHeight / 2),
+            0.4, 0.4, 0.9
+        );
         composer.addPass(bloomPass);
         afterimagePass = new AfterimagePass();
-        afterimagePass.uniforms.damp.value = 0.88; // More trails
+        afterimagePass.uniforms.damp.value = 0.85; // Lighter trails
         composer.addPass(afterimagePass);
         kaleidoscopePass = new ShaderPass(KaleidoscopeShader);
         kaleidoscopePass.enabled = false; // Start disabled
@@ -1635,24 +1642,20 @@
         updateShockwaves();
         triggerBassShockwave();
 
-        // Pulsing vignette with bass
-        const vignetteIntensity = 0.5 + bassLevel * 0.4;
-        vignette.style.background = `radial-gradient(circle at center, rgba(0,0,0,0) ${65 - bassLevel * 20}%, rgba(0,0,0,${vignetteIntensity}) 100%)`;
+        // Throttle CSS updates - only update every 3rd frame
+        if (Math.floor(t * 60) % 3 === 0) {
+            // Pulsing vignette with bass
+            const vignetteIntensity = 0.5 + bassLevel * 0.4;
+            vignette.style.background = `radial-gradient(circle at center, rgba(0,0,0,0) ${65 - bassLevel * 20}%, rgba(0,0,0,${vignetteIntensity}) 100%)`;
 
-        // Chromatic aberration on high bass
-        if (bassLevel > 0.5) {
-            const aberration = (bassLevel - 0.5) * 0.4;
-            chromaticOverlay.style.opacity = aberration;
-            chromaticOverlay.style.background = `
-                linear-gradient(90deg,
-                    rgba(255,0,0,0.1) 0%,
-                    transparent 15%,
-                    transparent 85%,
-                    rgba(0,255,255,0.1) 100%)
-            `;
-            chromaticOverlay.style.transform = `scaleX(${1 + aberration * 0.1})`;
-        } else {
-            chromaticOverlay.style.opacity = 0;
+            // Chromatic aberration on high bass
+            if (bassLevel > 0.5) {
+                const aberration = (bassLevel - 0.5) * 0.4;
+                chromaticOverlay.style.opacity = aberration;
+                chromaticOverlay.style.transform = `scaleX(${1 + aberration * 0.1})`;
+            } else {
+                chromaticOverlay.style.opacity = 0;
+            }
         }
 
         // Reactive fog density
