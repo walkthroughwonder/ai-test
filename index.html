@@ -140,27 +140,35 @@
             box-shadow: 0 4px 20px rgba(0,0,0,.45);
         }
 
-        .audio-meter {
+        .ui-toggle {
             position: fixed;
+            top: 24px;
             right: 24px;
-            bottom: 24px;
-            display: flex;
-            gap: 4px;
-            align-items: flex-end;
-            height: 80px;
-            padding: 10px;
-            background: rgba(18, 15, 40, 0.25);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(18, 15, 40, 0.4);
             border: 1px solid rgba(122, 70, 255, 0.28);
-            border-radius: 12px;
-            backdrop-filter: blur(12px);
-            z-index: 10;
+            cursor: pointer;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #d0b0ff;
+            transition: all 0.3s ease;
         }
 
-        .meter-bar {
-            width: 8px;
-            background: linear-gradient(to top, #ff3c78, #ff8c00, #fff200);
-            border-radius: 4px;
-            transition: height 0.05s ease;
+        .ui-toggle:hover {
+            background: rgba(122, 70, 255, 0.3);
+            transform: scale(1.1);
+        }
+
+        .ui-hidden .instructions,
+        .ui-hidden .controls,
+        .ui-hidden #status {
+            opacity: 0;
+            pointer-events: none;
         }
 
     </style>
@@ -190,16 +198,7 @@
         <button id="autoCamBtn" class="btn">Auto Cam</button>
     </div>
 
-    <div class="audio-meter">
-        <div class="meter-bar" id="bar1"></div>
-        <div class="meter-bar" id="bar2"></div>
-        <div class="meter-bar" id="bar3"></div>
-        <div class="meter-bar" id="bar4"></div>
-        <div class="meter-bar" id="bar5"></div>
-        <div class="meter-bar" id="bar6"></div>
-        <div class="meter-bar" id="bar7"></div>
-        <div class="meter-bar" id="bar8"></div>
-    </div>
+    <button class="ui-toggle" id="uiToggle" title="Toggle UI">&#9881;</button>
 
     <script type="module">
     import * as THREE from "three";
@@ -212,7 +211,7 @@
     let bassLevel = 0, midLevel = 0, highLevel = 0, overallLevel = 0;
 
     // Three.js variables - bare minimum
-    const PARTICLE_COUNT = 1000;
+    const PARTICLE_COUNT = 2000;
 
     let scene, camera, renderer, controls;
     let particles;
@@ -243,6 +242,13 @@
     const morphBtn = document.getElementById('morphBtn');
     const autoCamBtn = document.getElementById('autoCamBtn');
     const status = document.getElementById('status');
+    const uiToggle = document.getElementById('uiToggle');
+
+    // UI toggle
+    uiToggle.addEventListener('click', () => {
+        document.body.classList.toggle('ui-hidden');
+        uiToggle.innerHTML = document.body.classList.contains('ui-hidden') ? '&#9728;' : '&#9881;';
+    });
 
     // Auto camera state
     let autoCamEnabled = false;
@@ -309,18 +315,6 @@
         }
         particles.geometry.attributes.position.needsUpdate = true;
     }
-
-
-    const meterBars = [
-        document.getElementById('bar1'),
-        document.getElementById('bar2'),
-        document.getElementById('bar3'),
-        document.getElementById('bar4'),
-        document.getElementById('bar5'),
-        document.getElementById('bar6'),
-        document.getElementById('bar7'),
-        document.getElementById('bar8')
-    ];
 
     // Pattern generation functions
     function normalise(points, size) {
@@ -834,20 +828,9 @@
             beatDetected = false;
         }
 
-        // Update audio-reactive parameters - DRAMATIC scaling
-        audioScale = 1 + bassLevel * 0.6; // Was 0.15, now 0.6
+        // Update audio-reactive parameters
+        audioScale = 1 + bassLevel * 0.6;
         audioIntensity = overallLevel;
-
-        // Update meter bars
-        const bandSize = Math.floor(frequencyData.length / 8);
-        for (let i = 0; i < 8; i++) {
-            let sum = 0;
-            for (let j = 0; j < bandSize; j++) {
-                sum += frequencyData[i * bandSize + j];
-            }
-            const avg = Math.pow(sum / bandSize / 255, 0.6) * 2; // Exaggerated meters
-            meterBars[i].style.height = Math.min(60, avg * 60) + 'px';
-        }
     }
 
     // Audio event handlers
