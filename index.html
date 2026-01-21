@@ -211,7 +211,7 @@
     let bassLevel = 0, midLevel = 0, highLevel = 0, overallLevel = 0;
 
     // Three.js variables - bare minimum
-    const PARTICLE_COUNT = 2000;
+    const PARTICLE_COUNT = 4000;
 
     let scene, camera, renderer, controls;
     let particles;
@@ -958,7 +958,10 @@
         // Gradient background sphere
         const bgGeo = new THREE.SphereGeometry(400, 16, 16);
         const bgMat = new THREE.ShaderMaterial({
-            uniforms: { time: { value: 0 } },
+            uniforms: {
+                time: { value: 0 },
+                bassLevel: { value: 0 }
+            },
             vertexShader: `
                 varying vec3 vPos;
                 void main() {
@@ -968,6 +971,7 @@
             `,
             fragmentShader: `
                 uniform float time;
+                uniform float bassLevel;
                 varying vec3 vPos;
 
                 vec3 hsl2rgb(vec3 c) {
@@ -979,8 +983,12 @@
                     float y = normalize(vPos).y * 0.5 + 0.5;
                     float hue = mod(time * 0.02, 1.0);
 
-                    vec3 c1 = hsl2rgb(vec3(hue, 0.5, 0.08));
-                    vec3 c2 = hsl2rgb(vec3(hue + 0.1, 0.4, 0.04));
+                    // Bass controls brightness (lightness in HSL)
+                    float baseBrightness = 0.06;
+                    float brightness = baseBrightness + bassLevel * 0.12;
+
+                    vec3 c1 = hsl2rgb(vec3(hue, 0.5 + bassLevel * 0.2, brightness));
+                    vec3 c2 = hsl2rgb(vec3(hue + 0.1, 0.4, brightness * 0.5));
                     vec3 col = mix(c2, c1, y);
 
                     gl_FragColor = vec4(col, 1.0);
@@ -1055,7 +1063,10 @@
 
         // Update background gradient
         const bg = scene.getObjectByName('background');
-        if (bg) bg.material.uniforms.time.value = t;
+        if (bg) {
+            bg.material.uniforms.time.value = t;
+            bg.material.uniforms.bassLevel.value = bassLevel;
+        }
 
         // Auto camera
         if (autoCamEnabled) {
