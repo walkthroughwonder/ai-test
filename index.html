@@ -34,6 +34,34 @@
             pointer-events: none;
             z-index: 9;
             background: radial-gradient(circle at center, rgba(0,0,0,0) 65%, rgba(0,0,0,.5) 100%);
+            transition: opacity 0.1s ease;
+        }
+
+        /* Chromatic aberration overlay */
+        .chromatic-overlay {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 8;
+            opacity: 0;
+            mix-blend-mode: screen;
+            transition: opacity 0.1s ease;
+        }
+
+        /* Keyboard hints */
+        .keyboard-hints {
+            position: fixed;
+            right: 24px;
+            top: 80px;
+            padding: 10px 15px;
+            font-size: 11px;
+            color: rgba(208, 176, 255, 0.6);
+            background: rgba(18, 15, 40, 0.25);
+            border: 1px solid rgba(122, 70, 255, 0.2);
+            border-radius: 8px;
+            backdrop-filter: blur(12px);
+            z-index: 10;
+            line-height: 1.6;
         }
         canvas {
             display: block;
@@ -232,8 +260,18 @@
     <div class="vignette"></div>
 
     <button class="ui-toggle" id="uiToggle" title="Toggle UI">&#9881;</button>
+    <div class="chromatic-overlay" id="chromaticOverlay"></div>
 
-    <div class="instructions">Drag to explore<br>Audio drives the visuals</div>
+    <div class="keyboard-hints" id="keyboardHints">
+        [K] Kaleidoscope<br>
+        [R] Orbiting Rings<br>
+        [F] Fog Toggle<br>
+        [C] Color Mode<br>
+        [Space] Burst<br>
+        [1-9] Camera Presets
+    </div>
+
+    <div class="instructions">Drag to explore<br>Audio drives the visuals<br>Click for burst</div>
 
     <div id="status">Choose an audio file or use microphone</div>
 
@@ -265,6 +303,7 @@
     import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
     import { AfterimagePass } from "three/addons/postprocessing/AfterimagePass.js";
     import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+    import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 
     // Audio variables
     let audioContext, analyser, source, audioElement;
@@ -277,11 +316,21 @@
     const SPARK_COUNT = 2000;
     const STAR_COUNT = 7000;
 
-    let scene, camera, renderer, composer, controls, bloomPass, afterimagePass;
+    let scene, camera, renderer, composer, controls, bloomPass, afterimagePass, kaleidoscopePass;
     let particles, sparkles, stars;
+    let orbitingRings = [];
+    let shockwaves = [];
     let clock = new THREE.Clock();
     let currentPattern = 0, isTrans = false, prog = 0;
     const morphSpeed = 0.03;
+
+    // Effect toggles
+    let kaleidoscopeMode = false;
+    let ringsEnabled = false;
+    let fogEnabled = true;
+    let frequencyColorMode = 0; // 0=normal, 1=frequency-based, 2=monochrome
+    let dollyZoomActive = false;
+    let dollyZoomStart = 0;
 
     // Audio-reactive parameters - CRANKED UP for dramatic response
     let audioScale = 1;
@@ -313,12 +362,159 @@
     let lastMorphCompleteTime = 0;
     const MORPH_HOLD_TIME = 3000; // 3 seconds minimum hold
 
+    const vignette = document.querySelector('.vignette');
+    const chromaticOverlay = document.getElementById('chromaticOverlay');
+    const keyboardHints = document.getElementById('keyboardHints');
+
     // UI toggle
     uiToggle.addEventListener('click', () => {
         document.body.classList.toggle('ui-hidden');
         uiToggle.classList.toggle('hidden-ui');
         uiToggle.innerHTML = document.body.classList.contains('ui-hidden') ? '&#9728;' : '&#9881;';
     });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        switch(e.key.toLowerCase()) {
+            case 'k': // Kaleidoscope toggle
+                kaleidoscopeMode = !kaleidoscopeMode;
+                status.textContent = `Kaleidoscope: ${kaleidoscopeMode ? 'ON' : 'OFF'}`;
+                break;
+            case 'r': // Rings toggle
+                ringsEnabled = !ringsEnabled;
+                orbitingRings.forEach(r => r.visible = ringsEnabled);
+                status.textContent = `Orbiting Rings: ${ringsEnabled ? 'ON' : 'OFF'}`;
+                break;
+            case 'f': // Fog toggle
+                fogEnabled = !fogEnabled;
+                scene.fog = fogEnabled ? new THREE.FogExp2(0x050203, 0.012) : null;
+                status.textContent = `Fog: ${fogEnabled ? 'ON' : 'OFF'}`;
+                break;
+            case 'c': // Color mode cycle
+                frequencyColorMode = (frequencyColorMode + 1) % 3;
+                const modes = ['Normal', 'Frequency', 'Monochrome'];
+                status.textContent = `Color Mode: ${modes[frequencyColorMode]}`;
+                break;
+            case ' ': // Space for burst
+                e.preventDefault();
+                spawnBurst(new THREE.Vector3(0, 0, 0));
+                break;
+            case '1': case '2': case '3': case '4': case '5':
+            case '6': case '7': case '8': case '9':
+                setCameraPreset(parseInt(e.key));
+                break;
+        }
+    });
+
+    // Click to spawn burst
+    document.getElementById('container').addEventListener('click', (e) => {
+        if (e.target.tagName === 'CANVAS') {
+            // Convert screen coords to 3D
+            const rect = renderer.domElement.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+            const vector = new THREE.Vector3(x, y, 0.5);
+            vector.unproject(camera);
+            const dir = vector.sub(camera.position).normalize();
+            const pos = camera.position.clone().add(dir.multiplyScalar(50));
+            spawnBurst(pos);
+            spawnShockwave(pos);
+        }
+    });
+
+    // Camera presets
+    function setCameraPreset(num) {
+        autoCamEnabled = false;
+        autoCamBtn.textContent = 'Auto Cam';
+        autoCamBtn.classList.remove('active');
+
+        const presets = {
+            1: { pos: [0, 0, 80], target: [0, 0, 0] },      // Front
+            2: { pos: [0, 80, 0], target: [0, 0, 0] },      // Top
+            3: { pos: [80, 0, 0], target: [0, 0, 0] },      // Side
+            4: { pos: [50, 50, 50], target: [0, 0, 0] },    // Corner
+            5: { pos: [0, 0, 40], target: [0, 0, 0] },      // Close
+            6: { pos: [0, 0, 150], target: [0, 0, 0] },     // Far
+            7: { pos: [0, -50, 60], target: [0, 0, 0] },    // Below
+            8: { pos: [100, 20, 100], target: [0, 0, 0] },  // Wide angle
+            9: { pos: [0, 0, 20], target: [0, 0, 0] },      // Inside
+        };
+
+        if (presets[num]) {
+            const p = presets[num];
+            camera.position.set(...p.pos);
+            controls.target.set(...p.target);
+            status.textContent = `Camera Preset ${num}`;
+        }
+    }
+
+    // Spawn particle burst at position
+    function spawnBurst(position) {
+        if (!particles) return;
+        const posArray = particles.geometry.attributes.position.array;
+        const burstStrength = 20;
+
+        // Push nearby particles outward
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+            const idx = i * 3;
+            const px = posArray[idx];
+            const py = posArray[idx + 1];
+            const pz = posArray[idx + 2];
+
+            const dx = px - position.x;
+            const dy = py - position.y;
+            const dz = pz - position.z;
+            const dist = Math.sqrt(dx*dx + dy*dy + dz*dz);
+
+            if (dist < 30 && dist > 0) {
+                const force = (30 - dist) / 30 * burstStrength;
+                posArray[idx] += (dx / dist) * force;
+                posArray[idx + 1] += (dy / dist) * force;
+                posArray[idx + 2] += (dz / dist) * force;
+            }
+        }
+        particles.geometry.attributes.position.needsUpdate = true;
+    }
+
+    // Create shockwave ring
+    function spawnShockwave(position) {
+        const geometry = new THREE.RingGeometry(0.1, 2, 64);
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                time: { value: 0 },
+                color: { value: new THREE.Color(0x00ffff) }
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform float time;
+                uniform vec3 color;
+                varying vec2 vUv;
+                void main() {
+                    float alpha = 1.0 - time;
+                    alpha *= smoothstep(0.0, 0.3, vUv.x) * smoothstep(1.0, 0.7, vUv.x);
+                    gl_FragColor = vec4(color, alpha * 0.6);
+                }
+            `,
+            transparent: true,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
+        });
+
+        const ring = new THREE.Mesh(geometry, material);
+        ring.position.copy(position);
+        ring.lookAt(camera.position);
+        ring.userData = { birth: clock.getElapsedTime(), maxLife: 1.5 };
+        scene.add(ring);
+        shockwaves.push(ring);
+    }
+
     const meterBars = [
         document.getElementById('bar1'),
         document.getElementById('bar2'),
@@ -724,7 +920,8 @@
                 audioScale: { value: 1.0 },
                 bassLevel: { value: 0.0 },
                 midLevel: { value: 0.0 },
-                highLevel: { value: 0.0 }
+                highLevel: { value: 0.0 },
+                colorMode: { value: 0 }
             },
             vertexShader: `
                 uniform float time;
@@ -776,6 +973,7 @@
                 uniform float highLevel;
                 uniform float bassLevel;
                 uniform float midLevel;
+                uniform float colorMode;
                 varying vec3 vCol;
                 varying float vR;
                 varying float vBass;
@@ -785,6 +983,12 @@
                     float cosA = cos(h);
                     float sinA = sin(h);
                     return c * cosA + cross(k, c) * sinA + k * dot(k, c) * (1.0 - cosA);
+                }
+
+                // HSL to RGB
+                vec3 hsl2rgb(vec3 c) {
+                    vec3 rgb = clamp(abs(mod(c.x * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+                    return c.z + c.y * (rgb - 0.5) * (1.0 - abs(2.0 * c.z - 1.0));
                 }
 
                 void main() {
@@ -807,17 +1011,31 @@
                     float alpha = core * 0.8 + flare * 0.4 + glow * 0.25;
                     alpha *= 0.7 + highLevel * 0.3 + bassLevel * 0.2;
 
-                    // Hue cycling - faster with more audio
-                    float hueAmount = hueSpeed + highLevel * 1.5 + bassLevel * 1.0;
-                    vec3 color = hueShift(vCol, time * hueAmount);
+                    vec3 color;
+                    if (colorMode < 0.5) {
+                        // Normal mode - original behavior
+                        float hueAmount = hueSpeed + highLevel * 1.5 + bassLevel * 1.0;
+                        color = hueShift(vCol, time * hueAmount);
+                    } else if (colorMode < 1.5) {
+                        // Frequency-based coloring - bass=red, mid=green, high=blue
+                        float hue = bassLevel * 0.0 + midLevel * 0.33 + highLevel * 0.66;
+                        hue = mod(hue + time * 0.1, 1.0);
+                        color = hsl2rgb(vec3(hue, 0.9, 0.5 + (bassLevel + midLevel + highLevel) * 0.15));
+                    } else {
+                        // Monochrome mode - white/grey based on intensity
+                        float intensity = 0.5 + bassLevel * 0.2 + midLevel * 0.15 + highLevel * 0.15;
+                        color = vec3(intensity);
+                    }
 
                     // Subtle flash on bass hits - much less white
                     float flash = bassLevel * bassLevel * 0.15;
                     color = mix(color, vec3(1.0, 0.95, 0.9), flash);
 
-                    // Keep saturation vibrant
-                    float sat = 1.0 + midLevel * 0.3;
-                    color = mix(vec3(dot(color, vec3(0.299, 0.587, 0.114))), color, sat);
+                    // Keep saturation vibrant (skip for monochrome)
+                    if (colorMode < 1.5) {
+                        float sat = 1.0 + midLevel * 0.3;
+                        color = mix(vec3(dot(color, vec3(0.299, 0.587, 0.114))), color, sat);
+                    }
 
                     vec3 finalColor = mix(color, vec3(1.0, 0.95, 0.9), core);
                     finalColor = mix(finalColor, color, flare * 0.5 + glow * 0.5);
@@ -1083,6 +1301,131 @@
         }
     });
 
+    // Kaleidoscope shader
+    const KaleidoscopeShader = {
+        uniforms: {
+            tDiffuse: { value: null },
+            sides: { value: 6.0 },
+            angle: { value: 0.0 }
+        },
+        vertexShader: `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            uniform sampler2D tDiffuse;
+            uniform float sides;
+            uniform float angle;
+            varying vec2 vUv;
+
+            void main() {
+                vec2 p = vUv - 0.5;
+                float r = length(p);
+                float a = atan(p.y, p.x) + angle;
+
+                // Create kaleidoscope segments
+                float segmentAngle = 3.14159265 * 2.0 / sides;
+                a = mod(a, segmentAngle);
+                // Mirror every other segment
+                if (mod(floor(a / segmentAngle * 2.0), 2.0) == 1.0) {
+                    a = segmentAngle - a;
+                }
+                a = abs(a);
+
+                vec2 uv = vec2(cos(a), sin(a)) * r + 0.5;
+                uv = clamp(uv, 0.0, 1.0);
+
+                gl_FragColor = texture2D(tDiffuse, uv);
+            }
+        `
+    };
+
+    // Create orbiting rings around the shape
+    function createOrbitingRings() {
+        const ringColors = [0x00ffff, 0xff00ff, 0xffff00];
+        for (let i = 0; i < 3; i++) {
+            const radius = 35 + i * 12;
+            const geometry = new THREE.TorusGeometry(radius, 0.3, 8, 100);
+            const material = new THREE.ShaderMaterial({
+                uniforms: {
+                    time: { value: 0 },
+                    color: { value: new THREE.Color(ringColors[i]) },
+                    audioLevel: { value: 0 }
+                },
+                vertexShader: `
+                    uniform float time;
+                    uniform float audioLevel;
+                    varying vec2 vUv;
+                    void main() {
+                        vUv = uv;
+                        vec3 pos = position;
+                        // Ripple effect
+                        float ripple = sin(uv.x * 20.0 + time * 3.0) * audioLevel * 2.0;
+                        pos += normal * ripple;
+                        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+                    }
+                `,
+                fragmentShader: `
+                    uniform float time;
+                    uniform vec3 color;
+                    uniform float audioLevel;
+                    varying vec2 vUv;
+                    void main() {
+                        float alpha = 0.3 + audioLevel * 0.5;
+                        // Flowing glow effect
+                        float flow = sin(vUv.x * 30.0 - time * 2.0) * 0.5 + 0.5;
+                        alpha *= 0.5 + flow * 0.5;
+                        vec3 col = mix(color, vec3(1.0), flow * 0.3);
+                        gl_FragColor = vec4(col, alpha);
+                    }
+                `,
+                transparent: true,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+            const ring = new THREE.Mesh(geometry, material);
+            ring.rotation.x = Math.PI / 2 + i * 0.3;
+            ring.rotation.y = i * 0.5;
+            ring.visible = ringsEnabled;
+            scene.add(ring);
+            orbitingRings.push(ring);
+        }
+    }
+
+    // Update shockwaves
+    function updateShockwaves() {
+        const t = clock.getElapsedTime();
+        for (let i = shockwaves.length - 1; i >= 0; i--) {
+            const ring = shockwaves[i];
+            const age = t - ring.userData.birth;
+            const life = age / ring.userData.maxLife;
+
+            if (life >= 1) {
+                scene.remove(ring);
+                ring.geometry.dispose();
+                ring.material.dispose();
+                shockwaves.splice(i, 1);
+            } else {
+                // Expand ring
+                const scale = 1 + life * 40;
+                ring.scale.set(scale, scale, scale);
+                ring.material.uniforms.time.value = life;
+                ring.lookAt(camera.position);
+            }
+        }
+    }
+
+    // Spawn shockwave on bass hit
+    function triggerBassShockwave() {
+        if (bassLevel > 0.7 && Math.random() > 0.7) {
+            spawnShockwave(new THREE.Vector3(0, 0, 0));
+        }
+    }
+
     // Three.js functions
     function init() {
         scene = new THREE.Scene();
@@ -1191,7 +1534,13 @@
         afterimagePass = new AfterimagePass();
         afterimagePass.uniforms.damp.value = 0.88; // More trails
         composer.addPass(afterimagePass);
+        kaleidoscopePass = new ShaderPass(KaleidoscopeShader);
+        kaleidoscopePass.enabled = false; // Start disabled
+        composer.addPass(kaleidoscopePass);
         composer.addPass(new OutputPass());
+
+        // Create orbiting rings
+        createOrbitingRings();
 
         applyPattern(currentPattern);
 
@@ -1262,6 +1611,7 @@
         particles.material.uniforms.bassLevel.value = bassLevel;
         particles.material.uniforms.midLevel.value = midLevel;
         particles.material.uniforms.highLevel.value = highLevel;
+        particles.material.uniforms.colorMode.value = frequencyColorMode;
 
         sparkles.material.uniforms.time.value = t;
         sparkles.material.uniforms.audioScale.value = audioScale;
@@ -1269,6 +1619,69 @@
 
         stars.material.uniforms.time.value = t;
         stars.material.uniforms.audioLevel.value = overallLevel;
+
+        // Update orbiting rings
+        orbitingRings.forEach((ring, i) => {
+            ring.material.uniforms.time.value = t;
+            ring.material.uniforms.audioLevel.value = overallLevel;
+            ring.rotation.z += dt * (0.2 + i * 0.1) * (1 + bassLevel);
+            ring.rotation.x += dt * 0.1 * (1 + midLevel);
+            // Pulse scale with bass
+            const ringScale = 1 + bassLevel * 0.2;
+            ring.scale.set(ringScale, ringScale, ringScale);
+        });
+
+        // Update shockwaves
+        updateShockwaves();
+        triggerBassShockwave();
+
+        // Pulsing vignette with bass
+        const vignetteIntensity = 0.5 + bassLevel * 0.4;
+        vignette.style.background = `radial-gradient(circle at center, rgba(0,0,0,0) ${65 - bassLevel * 20}%, rgba(0,0,0,${vignetteIntensity}) 100%)`;
+
+        // Chromatic aberration on high bass
+        if (bassLevel > 0.5) {
+            const aberration = (bassLevel - 0.5) * 0.4;
+            chromaticOverlay.style.opacity = aberration;
+            chromaticOverlay.style.background = `
+                linear-gradient(90deg,
+                    rgba(255,0,0,0.1) 0%,
+                    transparent 15%,
+                    transparent 85%,
+                    rgba(0,255,255,0.1) 100%)
+            `;
+            chromaticOverlay.style.transform = `scaleX(${1 + aberration * 0.1})`;
+        } else {
+            chromaticOverlay.style.opacity = 0;
+        }
+
+        // Reactive fog density
+        if (fogEnabled && scene.fog) {
+            scene.fog.density = 0.008 + overallLevel * 0.015;
+        }
+
+        // Dolly zoom on big drops
+        if (bassLevel > 0.8 && !dollyZoomActive) {
+            dollyZoomActive = true;
+            dollyZoomStart = t;
+        }
+        if (dollyZoomActive) {
+            const dollyProgress = (t - dollyZoomStart) / 0.3; // 0.3 second effect
+            if (dollyProgress < 1) {
+                // Dolly zoom: move camera back while zooming in (or vice versa)
+                const zoomEffect = Math.sin(dollyProgress * Math.PI) * 15;
+                camera.fov = baseFov + zoomEffect;
+            } else {
+                dollyZoomActive = false;
+            }
+        }
+
+        // Kaleidoscope effect
+        kaleidoscopePass.enabled = kaleidoscopeMode;
+        if (kaleidoscopeMode) {
+            kaleidoscopePass.uniforms.angle.value = t * 0.2 + bassLevel * 0.5;
+            kaleidoscopePass.uniforms.sides.value = 6 + Math.floor(midLevel * 4); // 6-10 sides
+        }
 
         // Update background gradient
         const bg = scene.getObjectByName('background');
