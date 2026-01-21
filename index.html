@@ -1119,16 +1119,18 @@
             bg.material.uniforms.bassLevel.value = bassLevel;
         }
 
-        // Move attractor based on audio
+        // Move attractor based on audio - random motion
         if (attractor) {
-            // Orbit path influenced by audio
-            const orbitSpeed = 0.5 + bassLevel * 2;
-            const orbitRadius = 20 + midLevel * 15;
-            const verticalMove = Math.sin(t * 0.7) * (10 + highLevel * 10);
+            // Random wandering influenced by audio
+            attractorPos.x += (Math.random() - 0.5) * (2 + bassLevel * 8);
+            attractorPos.y += (Math.random() - 0.5) * (2 + midLevel * 6);
+            attractorPos.z += (Math.random() - 0.5) * (2 + highLevel * 6);
 
-            attractorPos.x = Math.cos(t * orbitSpeed) * orbitRadius;
-            attractorPos.y = verticalMove + Math.sin(t * 1.3) * bassLevel * 15;
-            attractorPos.z = Math.sin(t * orbitSpeed) * orbitRadius;
+            // Keep within bounds
+            const maxDist = 40;
+            if (attractorPos.length() > maxDist) {
+                attractorPos.multiplyScalar(0.95);
+            }
 
             attractor.position.copy(attractorPos);
 
@@ -1140,9 +1142,9 @@
             attractor.material.uniforms.time.value = t;
             attractor.material.uniforms.bassLevel.value = bassLevel;
 
-            // Update particle shader with attractor info
+            // Update particle shader with attractor info - 6x stronger gravity
             particles.material.uniforms.attractorPos.value.copy(attractorPos);
-            particles.material.uniforms.attractorStrength.value = 5 + bassLevel * 20 + midLevel * 10;
+            particles.material.uniforms.attractorStrength.value = 30 + bassLevel * 120 + midLevel * 60;
         }
 
         // Auto camera
