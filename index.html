@@ -680,11 +680,11 @@
 
         // Beat detection - more sensitive
         const now = performance.now();
-        if (rawBass > beatThreshold && now - lastBeatTime > 250) {
+        if (rawBass > beatThreshold && now - lastBeatTime > 150) { // Faster morphs (was 250ms)
             beatDetected = true;
             lastBeatTime = now;
-            // Auto-morph on beats
-            if (rawBass > 0.5 && !isTrans) {
+            // Auto-morph on beats - much more frequent
+            if (rawBass > 0.3 && !isTrans) { // Lower threshold (was 0.5)
                 beginMorph();
             }
         } else {
@@ -918,9 +918,9 @@
         stars.material.uniforms.time.value = t;
         stars.material.uniforms.audioLevel.value = overallLevel;
 
-        // DRAMATIC bloom - explodes with bass
-        bloomPass.strength = 0.3 + bassLevel * 2.5 + highLevel * 1.0;
-        bloomPass.radius = 0.5 + bassLevel * 0.8;
+        // Bloom capped at 1.0
+        bloomPass.strength = Math.min(1.0, 0.2 + bassLevel * 0.5 + highLevel * 0.3);
+        bloomPass.radius = 0.4 + bassLevel * 0.4;
 
         // Camera shake on big bass hits
         if (bassLevel > 0.7) {
