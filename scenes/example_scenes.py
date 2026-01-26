@@ -7,6 +7,7 @@ Examples:
     manimgl scenes/example_scenes.py BasicShapes
     manimgl scenes/example_scenes.py MathEquations
     manimgl scenes/example_scenes.py WaveAnimation
+    manimgl scenes/example_scenes.py TriangleAnimation
 
 Add -w flag to save to file:
     manimgl scenes/example_scenes.py HelloWorld -w
@@ -60,6 +61,74 @@ class BasicShapes(Scene):
             run_time=2
         )
         self.wait(1)
+
+
+class TriangleAnimation(Scene):
+    """Animates a triangle with various transformations."""
+
+    def construct(self):
+        # Create a triangle
+        triangle = Triangle(color=BLUE)
+        triangle.set_fill(BLUE, opacity=0.5)
+        triangle.scale(2)
+
+        # Draw the triangle
+        self.play(ShowCreation(triangle), run_time=1.5)
+        self.wait(0.5)
+
+        # Rotate the triangle
+        self.play(Rotate(triangle, angle=TAU), run_time=2)
+        self.wait(0.5)
+
+        # Change color with gradient
+        self.play(
+            triangle.animate.set_color_by_gradient(RED, YELLOW, GREEN),
+            run_time=1
+        )
+        self.wait(0.5)
+
+        # Scale up and down
+        self.play(triangle.animate.scale(1.5), run_time=0.5)
+        self.play(triangle.animate.scale(1/1.5), run_time=0.5)
+
+        # Move around the screen
+        self.play(triangle.animate.shift(LEFT * 3), run_time=0.5)
+        self.play(triangle.animate.shift(RIGHT * 6), run_time=1)
+        self.play(triangle.animate.shift(LEFT * 3), run_time=0.5)
+
+        # Create vertex labels
+        vertices = triangle.get_vertices()
+        labels = VGroup(*[
+            Text(label, font_size=24).next_to(vertex, direction)
+            for label, vertex, direction in zip(
+                ["A", "B", "C"],
+                vertices,
+                [UP, DOWN + LEFT, DOWN + RIGHT]
+            )
+        ])
+
+        self.play(FadeIn(labels))
+        self.wait(0.5)
+
+        # Transform to different triangle types
+        equilateral = RegularPolygon(n=3, color=PURPLE)
+        equilateral.set_fill(PURPLE, opacity=0.5)
+        equilateral.scale(2)
+
+        self.play(
+            Transform(triangle, equilateral),
+            FadeOut(labels),
+            run_time=1.5
+        )
+        self.wait(0.5)
+
+        # Final spin and fade out
+        self.play(
+            Rotate(triangle, angle=2 * TAU),
+            triangle.animate.scale(0.1),
+            run_time=2
+        )
+        self.play(FadeOut(triangle))
 
 
 class MathEquations(Scene):
