@@ -9,6 +9,7 @@ Examples:
     manimgl scenes/example_scenes.py WaveAnimation
     manimgl scenes/example_scenes.py TriangleAnimation
     manimgl scenes/example_scenes.py Rule30Hypergraph
+    manimgl scenes/example_scenes.py Rule30Foliation
 
 Add -w flag to save to file:
     manimgl scenes/example_scenes.py HelloWorld -w
@@ -446,3 +447,148 @@ class Rule30Hypergraph(Scene):
             FadeOut(VGroup(all_cells, nodes, edges, title, hypergraph_title, gen_label, stats)),
             run_time=1.5
         )
+
+
+class Rule30Foliation(Scene):
+    """
+    Rule 30 hypergraph with time flowing downward.
+    One step per horizontal row - clean causal graph visualization.
+    """
+
+    def construct(self):
+        # Title
+        title = Text("Rule 30 Causal Foliation", font_size=42)
+        title.to_edge(UP, buff=0.3)
+        self.play(Write(title), run_time=0.8)
+
+        # Rule 30 lookup
+        rule30 = {
+            (1, 1, 1): 0, (1, 1, 0): 0, (1, 0, 1): 0, (1, 0, 0): 1,
+            (0, 1, 1): 1, (0, 1, 0): 1, (0, 0, 1): 1, (0, 0, 0): 0,
+        }
+
+        def evolve(state):
+            n = len(state)
+            return [rule30[(state[(i-1) % n], state[i], state[(i+1) % n])] for i in range(n)]
+
+        # Initialize - narrower width for cleaner graph
+        width = 41
+        state = [0] * width
+        state[width // 2] = 1
+
+        # Generate generations
+        num_steps = 60
+        generations = [state]
+        for _ in range(num_steps - 1):
+            state = evolve(state)
+            generations.append(state)
+
+        # Visualization parameters
+        node_radius = 0.06
+        h_spacing = 0.22  # Horizontal spacing
+        v_spacing = 0.11  # Vertical spacing (time step)
+        start_y = 2.8
+
+        # Store all nodes by (gen, cell_index)
+        all_nodes = {}
+        nodes_group = VGroup()
+        edges_group = VGroup()
+
+        # Step counter
+        step_text = Text("Step: 0", font_size=28)
+        step_text.to_corner(UR, buff=0.5)
+        self.play(FadeIn(step_text), run_time=0.3)
+
+        # Animate row by row
+        for gen_idx, gen in enumerate(generations):
+            y = start_y - gen_idx * v_spacing
+            row_nodes = VGroup()
+            row_edges = VGroup()
+
+            # Color based on depth (time)
+            t = gen_idx / num_steps
+            node_color = interpolate_color(BLUE, ORANGE, t)
+
+            # Create nodes for active cells
+            for i, cell in enumerate(gen):
+                if cell == 1:
+                    x = (i - width // 2) * h_spacing
+                    node = Dot(point=[x, y, 0], radius=node_radius, color=node_color)
+                    node.set_fill(node_color, opacity=0.9)
+                    row_nodes.add(node)
+                    all_nodes[(gen_idx, i)] = node
+
+                    # Create edges from parent cells (previous generation)
+                    if gen_idx > 0:
+                        # Check which parent cells contributed to this cell
+                        for parent_offset in [-1, 0, 1]:
+                            parent_i = i + parent_offset
+                            if 0 <= parent_i < width:
+                                if (gen_idx - 1, parent_i) in all_nodes:
+                                    parent_node = all_nodes[(gen_idx - 1, parent_i)]
+                                    edge = Line(
+                                        parent_node.get_center(),
+                                        node.get_center(),
+                                        stroke_width=1.5,
+                                        stroke_opacity=0.5,
+                                    )
+                                    edge_color = interpolate_color(BLUE_A, ORANGE, (gen_idx - 1) / num_steps)
+                                    edge.set_color(edge_color)
+                                    row_edges.add(edge)
+
+            nodes_group.add(row_nodes)
+            edges_group.add(row_edges)
+
+            # Update step counter
+            new_step_text = Text(f"Step: {gen_idx}", font_size=28)
+            new_step_text.to_corner(UR, buff=0.5)
+
+            # Animate this row
+            if gen_idx == 0:
+                self.play(
+                    FadeIn(row_nodes),
+                    Transform(step_text, new_step_text),
+                    run_time=0.3
+                )
+            else:
+                self.play(
+                    ShowCreation(row_edges),
+                    FadeIn(row_nodes),
+                    Transform(step_text, new_step_text),
+                    run_time=0.05
+                )
+
+        self.wait(0.5)
+
+        # Show time arrow
+        arrow = Arrow(
+            start=[5.5, start_y, 0],
+            end=[5.5, start_y - num_steps * v_spacing, 0],
+            color=WHITE,
+            stroke_width=3,
+        )
+        time_label = Text("time", font_size=24)
+        time_label.next_to(arrow, RIGHT, buff=0.2)
+
+        self.play(
+            ShowCreation(arrow),
+            FadeIn(time_label),
+            run_time=1
+        )
+
+        # Stats
+        total_nodes = sum(sum(g) for g in generations)
+        stats = Text(f"Nodes: {total_nodes}  |  Steps: {num_steps}  |  Rule: 30", font_size=22)
+        stats.to_edge(DOWN, buff=0.3)
+        self.play(FadeIn(stats), run_time=0.5)
+
+        self.wait(2)
+
+        # Zoom out effect
+        everything = VGroup(nodes_group, edges_group, title, step_text, arrow, time_label, stats)
+        self.play(
+            everything.animate.scale(0.7).shift(UP * 0.5),
+            run_time=1.5
+        )
+
+        self.wait(1)
