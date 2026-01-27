@@ -477,7 +477,7 @@ class Rule30Foliation(Scene):
         state[width // 2] = 1
 
         # Generate generations
-        num_steps = 60
+        num_steps = 15
         generations = [state]
         for _ in range(num_steps - 1):
             state = evolve(state)
