@@ -457,37 +457,37 @@ class Rule30Foliation(Scene):
 
     def construct(self):
         # Title
-        title = Text("Rule 30 Causal Foliation", font_size=42)
+        title = Text("Rule 110 Causal Foliation", font_size=42)
         title.to_edge(UP, buff=0.3)
         self.play(Write(title), run_time=0.8)
 
-        # Rule 30 lookup
-        rule30 = {
-            (1, 1, 1): 0, (1, 1, 0): 0, (1, 0, 1): 0, (1, 0, 0): 1,
+        # Rule 110 lookup (Turing complete!)
+        rule = {
+            (1, 1, 1): 0, (1, 1, 0): 1, (1, 0, 1): 1, (1, 0, 0): 0,
             (0, 1, 1): 1, (0, 1, 0): 1, (0, 0, 1): 1, (0, 0, 0): 0,
         }
 
         def evolve(state):
             n = len(state)
-            return [rule30[(state[(i-1) % n], state[i], state[(i+1) % n])] for i in range(n)]
+            return [rule[(state[(i-1) % n], state[i], state[(i+1) % n])] for i in range(n)]
 
         # Initialize - narrower width for cleaner graph
-        width = 41
+        width = 61
         state = [0] * width
         state[width // 2] = 1
 
         # Generate generations
-        num_steps = 15
+        num_steps = 50
         generations = [state]
         for _ in range(num_steps - 1):
             state = evolve(state)
             generations.append(state)
 
         # Visualization parameters
-        node_radius = 0.06
-        h_spacing = 0.22  # Horizontal spacing
-        v_spacing = 0.11  # Vertical spacing (time step)
-        start_y = 2.8
+        node_radius = 0.04
+        h_spacing = 0.15  # Horizontal spacing
+        v_spacing = 0.09  # Vertical spacing (time step)
+        start_y = 3.2
 
         # Store all nodes by (gen, cell_index)
         all_nodes = {}
@@ -578,7 +578,7 @@ class Rule30Foliation(Scene):
 
         # Stats
         total_nodes = sum(sum(g) for g in generations)
-        stats = Text(f"Nodes: {total_nodes}  |  Steps: {num_steps}  |  Rule: 30", font_size=22)
+        stats = Text(f"Nodes: {total_nodes}  |  Steps: {num_steps}  |  Rule: 110", font_size=22)
         stats.to_edge(DOWN, buff=0.3)
         self.play(FadeIn(stats), run_time=0.5)
 
