@@ -662,34 +662,30 @@
                     float dramaticScale = audioScale * (1.0 + bassLevel * 0.5);
                     vec3 p = position * dramaticScale;
 
-                    // Slower, smoother motion
-                    float t = time * (0.15 + midLevel * 0.3) * random.z;
+                    // Faster, more reactive time
+                    float t = time * (0.4 + midLevel * 0.8) * random.z;
                     float ax = t + random.y, ay = t * 0.75 + random.x;
 
-                    // Audio amplitude - more subtle
-                    float audioAmp = 1.0 + bassLevel * 1.5 + midLevel * 1.0;
-                    float amp = (0.5 + sin(random.x + t * 0.4) * 0.3) * random.z * audioAmp;
+                    // Audio amplitude - reactive but controlled
+                    float audioAmp = 1.0 + bassLevel * 4.0 + midLevel * 2.5;
+                    float amp = (0.8 + sin(random.x + t * 0.6) * 0.4) * random.z * audioAmp;
 
                     // Wave displacement
                     p.x += sin(ax + p.y * 0.08 + random.x * 0.2) * amp;
                     p.y += cos(ay + p.z * 0.08 + random.y * 0.2) * amp;
                     p.z += sin(ax * 0.85 + p.x * 0.08 + random.z * 0.2) * amp;
 
-                    // Explosion on bass hits - subtle
-                    float explosion = bassLevel * bassLevel * 3.0;
+                    // Explosion on bass hits - reduced
+                    float explosion = bassLevel * bassLevel * 8.0;
                     p += normalize(position) * explosion * random.z;
 
-                    // Orbital pull towards attractor (not direct - adds tangent for orbit)
+                    // Gravitational pull towards attractor
                     vec3 toAttractor = attractorPos - p;
                     float dist = length(toAttractor);
                     if (dist > 1.0) {
                         vec3 pullDir = normalize(toAttractor);
-                        // Create tangent vector for orbital motion
-                        vec3 tangent = normalize(cross(pullDir, vec3(0.0, 1.0, 0.0)));
-                        // Mix pull with tangent for orbit effect
-                        vec3 orbitDir = normalize(pullDir * 0.3 + tangent * 0.7);
-                        float pullStrength = attractorStrength / (dist * 0.8 + 5.0);
-                        p += orbitDir * pullStrength * random.z * 0.5;
+                        float pullStrength = attractorStrength / (dist * 0.5 + 1.0);
+                        p += pullDir * pullStrength * random.z;
                     }
 
                     vec4 mv = modelViewMatrix * vec4(p, 1.);
@@ -1106,7 +1102,7 @@
 
         analyzeAudio();
         controls.update();
-        controls.autoRotateSpeed = 0.3 + bassLevel * 1.5;
+        controls.autoRotateSpeed = 0.5 + bassLevel * 4;
 
         // Update particle uniforms
         particles.material.uniforms.time.value = t;
@@ -1123,12 +1119,12 @@
             bg.material.uniforms.bassLevel.value = bassLevel;
         }
 
-        // Move attractor based on audio - slower random motion
+        // Move attractor based on audio - random motion
         if (attractor) {
-            // Slower random wandering influenced by audio
-            attractorPos.x += (Math.random() - 0.5) * (0.5 + bassLevel * 2);
-            attractorPos.y += (Math.random() - 0.5) * (0.5 + midLevel * 1.5);
-            attractorPos.z += (Math.random() - 0.5) * (0.5 + highLevel * 1.5);
+            // Random wandering influenced by audio
+            attractorPos.x += (Math.random() - 0.5) * (2 + bassLevel * 8);
+            attractorPos.y += (Math.random() - 0.5) * (2 + midLevel * 6);
+            attractorPos.z += (Math.random() - 0.5) * (2 + highLevel * 6);
 
             // Keep within bounds
             const maxDist = 40;
