@@ -215,6 +215,7 @@
 
     let scene, camera, renderer, controls;
     let particles;
+    let waveformTexture; // Texture for waveform data
     let clock = new THREE.Clock();
     let currentPattern = 0, isTrans = false, prog = 0;
     const morphSpeed = 0.03;
@@ -635,13 +636,17 @@
                 bassLevel: { value: 0.0 },
                 midLevel: { value: 0.0 },
                 highLevel: { value: 0.0 },
-                colorMode: { value: 0 }
+                colorMode: { value: 0 },
+                waveform: { value: null },
+                waveformStrength: { value: 15.0 }
             },
             vertexShader: `
                 uniform float time;
                 uniform float audioScale;
                 uniform float bassLevel;
                 uniform float midLevel;
+                uniform sampler2D waveform;
+                uniform float waveformStrength;
                 attribute float size;
                 attribute vec3 random;
                 varying vec3 vCol;
@@ -668,6 +673,13 @@
                     p.x += sin(ax + p.y * 0.08 + random.x * 0.2) * amp;
                     p.y += cos(ay + p.z * 0.08 + random.y * 0.2) * amp;
                     p.z += sin(ax * 0.85 + p.x * 0.08 + random.z * 0.2) * amp;
+
+                    // Waveform displacement - sample based on particle position
+                    float wavePos = fract((position.x + position.z) * 0.02 + time * 0.1);
+                    float waveValue = texture2D(waveform, vec2(wavePos, 0.5)).r;
+                    // Displace outward based on waveform
+                    vec3 waveDir = normalize(position + vec3(0.001));
+                    p += waveDir * waveValue * waveformStrength * (0.5 + random.z * 0.5);
 
                     // Explosion on bass hits - reduced
                     float explosion = bassLevel * bassLevel * 3.0;
@@ -1000,8 +1012,15 @@
         bgSphere.name = 'background';
         scene.add(bgSphere);
 
+        // Create waveform texture for audio visualization
+        const waveformSize = 256;
+        const waveformData = new Uint8Array(waveformSize * 4);
+        waveformTexture = new THREE.DataTexture(waveformData, waveformSize, 1, THREE.RGBAFormat);
+        waveformTexture.needsUpdate = true;
+
         const palette = [0xff3c78, 0xff8c00, 0xfff200, 0x00cfff, 0xb400ff].map(c => new THREE.Color(c));
         particles = makeParticles(PARTICLE_COUNT, palette);
+        particles.material.uniforms.waveform.value = waveformTexture;
         scene.add(particles);
 
         applyPattern(currentPattern);
@@ -1052,6 +1071,19 @@
         analyzeAudio();
         controls.update();
         controls.autoRotateSpeed = 0.4 + bassLevel * 1.5;
+
+        // Update waveform texture with frequency data
+        if (waveformTexture && analyser) {
+            const data = waveformTexture.image.data;
+            for (let i = 0; i < 256; i++) {
+                const value = frequencyData[i] || 0;
+                data[i * 4] = value;     // R
+                data[i * 4 + 1] = value; // G
+                data[i * 4 + 2] = value; // B
+                data[i * 4 + 3] = 255;   // A
+            }
+            waveformTexture.needsUpdate = true;
+        }
 
         // Update particle uniforms
         particles.material.uniforms.time.value = t;
