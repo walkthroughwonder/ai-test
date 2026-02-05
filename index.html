@@ -215,8 +215,6 @@
 
     let scene, camera, renderer, controls;
     let particles;
-    let attractor; // Gravitational attractor
-    let attractorPos = new THREE.Vector3(0, 0, 0);
     let clock = new THREE.Clock();
     let currentPattern = 0, isTrans = false, prog = 0;
     const morphSpeed = 0.03;
@@ -637,17 +635,13 @@
                 bassLevel: { value: 0.0 },
                 midLevel: { value: 0.0 },
                 highLevel: { value: 0.0 },
-                colorMode: { value: 0 },
-                attractorPos: { value: new THREE.Vector3(0, 0, 0) },
-                attractorStrength: { value: 0.0 }
+                colorMode: { value: 0 }
             },
             vertexShader: `
                 uniform float time;
                 uniform float audioScale;
                 uniform float bassLevel;
                 uniform float midLevel;
-                uniform vec3 attractorPos;
-                uniform float attractorStrength;
                 attribute float size;
                 attribute vec3 random;
                 varying vec3 vCol;
@@ -678,15 +672,6 @@
                     // Explosion on bass hits - reduced
                     float explosion = bassLevel * bassLevel * 8.0;
                     p += normalize(position) * explosion * random.z;
-
-                    // Gravitational pull towards attractor
-                    vec3 toAttractor = attractorPos - p;
-                    float dist = length(toAttractor);
-                    if (dist > 1.0) {
-                        vec3 pullDir = normalize(toAttractor);
-                        float pullStrength = attractorStrength / (dist * 0.5 + 1.0);
-                        p += pullDir * pullStrength * random.z;
-                    }
 
                     vec4 mv = modelViewMatrix * vec4(p, 1.);
 
@@ -1019,42 +1004,6 @@
         particles = makeParticles(PARTICLE_COUNT, palette);
         scene.add(particles);
 
-        // Create gravitational attractor (glowing sphere)
-        const attractorGeo = new THREE.SphereGeometry(2, 16, 16);
-        const attractorMat = new THREE.ShaderMaterial({
-            uniforms: {
-                time: { value: 0 },
-                bassLevel: { value: 0 }
-            },
-            vertexShader: `
-                varying vec3 vNormal;
-                void main() {
-                    vNormal = normal;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                uniform float time;
-                uniform float bassLevel;
-                varying vec3 vNormal;
-                void main() {
-                    float fresnel = pow(1.0 - abs(dot(vNormal, vec3(0.0, 0.0, 1.0))), 2.0);
-                    float pulse = 0.5 + 0.5 * sin(time * 3.0);
-                    float brightness = 0.6 + bassLevel * 0.4 + pulse * 0.2;
-                    vec3 coreColor = vec3(1.0, 0.6, 0.2);
-                    vec3 glowColor = vec3(1.0, 0.3, 0.1);
-                    vec3 col = mix(coreColor, glowColor, fresnel) * brightness;
-                    float alpha = 0.8 + fresnel * 0.2;
-                    gl_FragColor = vec4(col, alpha);
-                }
-            `,
-            transparent: true,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false
-        });
-        attractor = new THREE.Mesh(attractorGeo, attractorMat);
-        scene.add(attractor);
-
         applyPattern(currentPattern);
 
         addEventListener("resize", () => {
@@ -1117,34 +1066,6 @@
         if (bg) {
             bg.material.uniforms.time.value = t;
             bg.material.uniforms.bassLevel.value = bassLevel;
-        }
-
-        // Move attractor based on audio - random motion
-        if (attractor) {
-            // Random wandering influenced by audio
-            attractorPos.x += (Math.random() - 0.5) * (2 + bassLevel * 8);
-            attractorPos.y += (Math.random() - 0.5) * (2 + midLevel * 6);
-            attractorPos.z += (Math.random() - 0.5) * (2 + highLevel * 6);
-
-            // Keep within bounds
-            const maxDist = 40;
-            if (attractorPos.length() > maxDist) {
-                attractorPos.multiplyScalar(0.95);
-            }
-
-            attractor.position.copy(attractorPos);
-
-            // Scale attractor with bass
-            const scale = 1 + bassLevel * 1.5;
-            attractor.scale.set(scale, scale, scale);
-
-            // Update attractor shader
-            attractor.material.uniforms.time.value = t;
-            attractor.material.uniforms.bassLevel.value = bassLevel;
-
-            // Update particle shader with attractor info - 6x stronger gravity
-            particles.material.uniforms.attractorPos.value.copy(attractorPos);
-            particles.material.uniforms.attractorStrength.value = 30 + bassLevel * 120 + midLevel * 60;
         }
 
         // Auto camera
