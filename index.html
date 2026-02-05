@@ -230,10 +230,10 @@
     let beatThreshold = 0.35; // Much lower threshold for more morphs
 
     // Sensitivity multipliers - toned down to prevent blowout
-    const SENSITIVITY = 2.0;        // Overall sensitivity boost
-    const BASS_MULT = 2.5;          // Bass impact multiplier
-    const MID_MULT = 2.0;           // Mid impact multiplier
-    const HIGH_MULT = 1.8;          // High impact multiplier
+    const SENSITIVITY = 1.2;        // Overall sensitivity boost
+    const BASS_MULT = 1.4;          // Bass impact multiplier
+    const MID_MULT = 1.2;           // Mid impact multiplier
+    const HIGH_MULT = 1.0;          // High impact multiplier
 
     // DOM elements
     const fileInput = document.getElementById('fileInput');
@@ -653,7 +653,7 @@
                     vBass = bassLevel;
 
                     // DRAMATIC scale pulsing with audio
-                    float dramaticScale = audioScale * (1.0 + bassLevel * 0.5);
+                    float dramaticScale = audioScale * (1.0 + bassLevel * 0.2);
                     vec3 p = position * dramaticScale;
 
                     // Faster, more reactive time
@@ -661,8 +661,8 @@
                     float ax = t + random.y, ay = t * 0.75 + random.x;
 
                     // Audio amplitude - reactive but controlled
-                    float audioAmp = 1.0 + bassLevel * 4.0 + midLevel * 2.5;
-                    float amp = (0.8 + sin(random.x + t * 0.6) * 0.4) * random.z * audioAmp;
+                    float audioAmp = 1.0 + bassLevel * 1.5 + midLevel * 1.0;
+                    float amp = (0.6 + sin(random.x + t * 0.6) * 0.3) * random.z * audioAmp;
 
                     // Wave displacement
                     p.x += sin(ax + p.y * 0.08 + random.x * 0.2) * amp;
@@ -670,7 +670,7 @@
                     p.z += sin(ax * 0.85 + p.x * 0.08 + random.z * 0.2) * amp;
 
                     // Explosion on bass hits - reduced
-                    float explosion = bassLevel * bassLevel * 8.0;
+                    float explosion = bassLevel * bassLevel * 3.0;
                     p += normalize(position) * explosion * random.z;
 
                     vec4 mv = modelViewMatrix * vec4(p, 1.);
@@ -829,7 +829,7 @@
         }
 
         // Update audio-reactive parameters
-        audioScale = 1 + bassLevel * 0.6;
+        audioScale = 1 + bassLevel * 0.3;
         audioIntensity = overallLevel;
     }
 
@@ -984,8 +984,8 @@
                     float hue = mod(time * 0.02, 1.0);
 
                     // Bass controls brightness (lightness in HSL)
-                    float baseBrightness = 0.06;
-                    float brightness = baseBrightness + bassLevel * 0.12;
+                    float baseBrightness = 0.05;
+                    float brightness = baseBrightness + bassLevel * 0.06;
 
                     vec3 c1 = hsl2rgb(vec3(hue, 0.5 + bassLevel * 0.2, brightness));
                     vec3 c2 = hsl2rgb(vec3(hue + 0.1, 0.4, brightness * 0.5));
@@ -1051,7 +1051,7 @@
 
         analyzeAudio();
         controls.update();
-        controls.autoRotateSpeed = 0.5 + bassLevel * 4;
+        controls.autoRotateSpeed = 0.4 + bassLevel * 1.5;
 
         // Update particle uniforms
         particles.material.uniforms.time.value = t;
