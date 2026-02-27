@@ -1,0 +1,20 @@
+# ManimGL (3Blue1Brown's Manim) dependencies
+manimgl>=1.6.1
+
+# Core dependencies (installed automatically with manimgl, listed for reference)
+# numpy
+# scipy
+# sympy
+# pillow
+# pycairo
+# pydub
+# pyglet
+# rich
+# screeninfo
+# moderngl
+# moderngl-window
+# mapbox-earcut
+# svgelements
+# isosurfaces
+# colour
+# manimpango
