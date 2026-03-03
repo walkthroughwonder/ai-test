@@ -101,7 +101,7 @@
             border-color: rgba(180, 0, 255, 0.5);
         }
 
-        #fileInput {
+        #fileInput, #imgInput {
             display: none;
         }
 
@@ -192,10 +192,13 @@
     <div class="controls">
         <input type="file" id="fileInput" accept="audio/*">
         <label for="fileInput" class="file-label">Load Audio</label>
+        <input type="file" id="imgInput" accept="image/*,video/*">
+        <label for="imgInput" class="file-label" style="background: linear-gradient(135deg, rgba(142, 17, 153, 0.3), rgba(239, 56, 183, 0.3)); border-color: rgba(239, 56, 183, 0.4);">Load Image</label>
         <button id="micBtn" class="btn">Microphone</button>
         <button id="playBtn" class="btn" disabled>Play</button>
         <button id="morphBtn" class="btn">Morph</button>
         <button id="autoCamBtn" class="btn">Auto Cam</button>
+        <button id="imgToggleBtn" class="btn" style="display:none;">Hide Image</button>
     </div>
 
     <button class="ui-toggle" id="uiToggle" title="Toggle UI">&#9881;</button>
@@ -217,6 +220,10 @@
     let particles;
     let waveformTexture; // Texture for waveform data
     let clock = new THREE.Clock();
+
+    // Image visualizer
+    let imgPlane, imgMaterial, imgTexture, imgSourceElement;
+    let imgIsVideo = false, imgPlaneVisible = false;
     let currentPattern = 0, isTrans = false, prog = 0;
     const morphSpeed = 0.03;
 
@@ -316,6 +323,173 @@
         }
         particles.geometry.attributes.position.needsUpdate = true;
     }
+
+    // --- Image Visualizer ---
+    const imgVertexShader = `
+        uniform sampler2D uTexture;
+        uniform sampler2D uWaveform;
+        uniform float uStrength;
+        uniform float uLayers;
+        uniform float uSoftness;
+        uniform float uBass;
+        uniform float uMid;
+        uniform float uHigh;
+        uniform float uTime;
+        varying vec2 vUv;
+
+        float getLuminance(vec3 color) {
+            return dot(color, vec3(0.299, 0.587, 0.114));
+        }
+
+        void main() {
+            vUv = uv;
+            vec4 color = texture2D(uTexture, uv);
+            float brightness = getLuminance(color.rgb);
+
+            // Stepped vs smooth layers
+            float stepped = floor(brightness * uLayers) / uLayers;
+            float smoothVal = brightness;
+            float elevation = mix(stepped, smoothVal, uSoftness);
+
+            // Audio-reactive displacement
+            float wavePos = fract(uv.x + uTime * 0.05);
+            float waveValue = texture2D(uWaveform, vec2(wavePos, 0.5)).r / 255.0;
+
+            // Combine luminance displacement with audio
+            float audioBoost = 1.0 + uBass * 2.0 + uMid * 0.5;
+            float audioWave = waveValue * uBass * 0.3;
+            float totalDisplacement = elevation * uStrength * audioBoost + audioWave;
+
+            vec3 newPos = position + normal * totalDisplacement;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(newPos, 1.0);
+        }
+    `;
+
+    const imgFragmentShader = `
+        uniform sampler2D uTexture;
+        uniform float uBass;
+        uniform float uTime;
+        varying vec2 vUv;
+        void main() {
+            vec4 col = texture2D(uTexture, vUv);
+            // Slight color boost with bass
+            col.rgb *= 1.0 + uBass * 0.15;
+            gl_FragColor = col;
+        }
+    `;
+
+    function createImagePlane() {
+        const geo = new THREE.PlaneGeometry(1, 1, 300, 300);
+        imgMaterial = new THREE.ShaderMaterial({
+            vertexShader: imgVertexShader,
+            fragmentShader: imgFragmentShader,
+            uniforms: {
+                uTexture: { value: null },
+                uWaveform: { value: waveformTexture },
+                uStrength: { value: 0.15 },
+                uLayers: { value: 8 },
+                uSoftness: { value: 1.0 },
+                uBass: { value: 0 },
+                uMid: { value: 0 },
+                uHigh: { value: 0 },
+                uTime: { value: 0 }
+            },
+            side: THREE.DoubleSide
+        });
+        imgPlane = new THREE.Mesh(geo, imgMaterial);
+        imgPlane.visible = false;
+        scene.add(imgPlane);
+    }
+
+    function loadImageMedia(file) {
+        if (!file) return;
+        const url = URL.createObjectURL(file);
+        const isVid = file.type.startsWith('video');
+        applyImageMedia(url, isVid);
+    }
+
+    function applyImageMedia(url, isVid) {
+        // Cleanup previous
+        if (imgSourceElement && imgIsVideo) {
+            imgSourceElement.pause();
+            imgSourceElement.src = '';
+        }
+        if (imgTexture) imgTexture.dispose();
+
+        imgIsVideo = isVid;
+
+        if (isVid) {
+            imgSourceElement = document.createElement('video');
+            imgSourceElement.crossOrigin = 'anonymous';
+            imgSourceElement.loop = true;
+            imgSourceElement.muted = true;
+            imgSourceElement.playsInline = true;
+            imgSourceElement.src = url;
+            imgSourceElement.onloadedmetadata = () => {
+                imgSourceElement.play();
+                imgTexture = new THREE.VideoTexture(imgSourceElement);
+                imgTexture.minFilter = THREE.LinearFilter;
+                fitImagePlane(imgSourceElement.videoWidth, imgSourceElement.videoHeight);
+            };
+        } else {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.src = url;
+            img.onload = () => {
+                imgTexture = new THREE.TextureLoader().load(url, () => {
+                    fitImagePlane(img.width, img.height);
+                });
+                imgTexture.minFilter = THREE.LinearFilter;
+            };
+        }
+    }
+
+    function fitImagePlane(w, h) {
+        if (!imgPlane || !imgMaterial) return;
+        imgMaterial.uniforms.uTexture.value = imgTexture;
+        if (waveformTexture) imgMaterial.uniforms.uWaveform.value = waveformTexture;
+
+        const aspect = w / h;
+        // Scale to fit nicely in scene
+        const planeScale = 60;
+        imgPlane.scale.set(aspect * planeScale, planeScale, 1);
+        imgPlane.position.set(0, 0, -20);
+        imgPlane.visible = true;
+        imgPlaneVisible = true;
+
+        document.getElementById('imgToggleBtn').style.display = '';
+        status.textContent = 'Image loaded';
+    }
+
+    // Image input handlers
+    document.getElementById('imgInput').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) loadImageMedia(file);
+    });
+
+    document.getElementById('imgToggleBtn').addEventListener('click', () => {
+        if (!imgPlane) return;
+        imgPlaneVisible = !imgPlaneVisible;
+        imgPlane.visible = imgPlaneVisible;
+        document.getElementById('imgToggleBtn').textContent = imgPlaneVisible ? 'Hide Image' : 'Show Image';
+    });
+
+    // Drag-drop for image/video
+    window.addEventListener('dragover', (e) => e.preventDefault());
+    window.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const file = e.dataTransfer.files[0];
+        if (!file) return;
+        if (file.type.startsWith('image') || file.type.startsWith('video')) {
+            loadImageMedia(file);
+        } else if (file.type.startsWith('audio')) {
+            // Let existing audio handler deal with it
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            document.getElementById('fileInput').files = dt.files;
+            document.getElementById('fileInput').dispatchEvent(new Event('change'));
+        }
+    });
 
     // Pattern generation functions
     function normalise(points, size) {
@@ -1025,6 +1199,9 @@
 
         applyPattern(currentPattern);
 
+        // Create image displacement plane
+        createImagePlane();
+
         addEventListener("resize", () => {
             camera.aspect = innerWidth / innerHeight;
             camera.updateProjectionMatrix();
@@ -1098,6 +1275,15 @@
         if (bg) {
             bg.material.uniforms.time.value = t;
             bg.material.uniforms.bassLevel.value = bassLevel;
+        }
+
+        // Update image plane uniforms
+        if (imgPlane && imgPlane.visible && imgMaterial) {
+            imgMaterial.uniforms.uBass.value = bassLevel;
+            imgMaterial.uniforms.uMid.value = midLevel;
+            imgMaterial.uniforms.uHigh.value = highLevel;
+            imgMaterial.uniforms.uTime.value = t;
+            if (waveformTexture) imgMaterial.uniforms.uWaveform.value = waveformTexture;
         }
 
         // Auto camera
