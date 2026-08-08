@@ -173,6 +173,20 @@
         let visualizationMode = 'bars';
         let isPlaying = false;
         let isMicActive = false;
+        let micStream = null;
+
+        // The analyser feeds the speakers for file playback, but must NOT
+        // during mic capture or the mic feeds back into itself. Route it
+        // explicitly at each switch instead of disconnecting once and
+        // leaving it severed for the rest of the session.
+        function setMonitoring(on) {
+            if (!audioContext) return;
+            if (on) {
+                analyser.connect(audioContext.destination);
+            } else {
+                analyser.disconnect();
+            }
+        }
 
         // Initialize Audio Context
         function initAudioContext() {
@@ -204,6 +218,10 @@
                 if (source) source.disconnect();
                 source = audioContext.createMediaElementSource(audioElement);
                 source.connect(analyser);
+                // Restore the speaker path: using the microphone tears it
+                // down, and without this a file loaded afterwards played
+                // silently for the rest of the session.
+                setMonitoring(true);
 
                 playBtn.disabled = false;
                 stopBtn.disabled = false;
@@ -220,6 +238,16 @@
         micBtn.addEventListener('click', async () => {
             if (isMicActive) {
                 stopVisualization();
+                // Release the capture device. stopVisualization() only
+                // cancels the rAF loop, so without this the mic stayed
+                // open and the browser's recording indicator stayed lit
+                // until the tab was closed.
+                if (micStream) {
+                    micStream.getTracks().forEach(t => t.stop());
+                    micStream = null;
+                }
+                if (source) { source.disconnect(); source = null; }
+                setMonitoring(true);
                 isMicActive = false;
                 micBtn.textContent = 'Use Microphone';
                 status.textContent = 'Microphone stopped';
@@ -233,14 +261,14 @@
                     audioElement.pause();
                 }
 
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
                 if (source) source.disconnect();
-                source = audioContext.createMediaStreamSource(stream);
+                source = audioContext.createMediaStreamSource(micStream);
                 source.connect(analyser);
 
-                // Don't connect to destination to prevent feedback
-                analyser.disconnect();
+                // Don't monitor to the speakers, or the mic feeds back.
+                setMonitoring(false);
 
                 isMicActive = true;
                 micBtn.textContent = 'Stop Microphone';
