@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>preview · the proof line · Edwin Rosero</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Local preview only — the proof line direction. Not live.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #060607;
+    --surface: rgba(12,12,16,0.75);
+    --border: rgba(255,255,255,0.05);
+    --text-1: rgba(255,255,255,0.88);
+    --text-2: rgba(255,255,255,0.44);
+    --text-3: rgba(255,255,255,0.16);
+    --accent: #c8a44e;
+    --accent-dim: rgba(200,164,78,0.4);
+    --accent-glow: rgba(200,164,78,0.06);
+    --serif: 'Cormorant Garamond', Georgia, serif;
+    --mono: 'IBM Plex Mono', 'Courier New', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-1);
+    font-family: var(--mono);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: rgba(200,164,78,0.2);
+    color: #fff;
+  }
+
+  #bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .preview-flag {
+    position: fixed;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    font-family: var(--mono);
+    font-size: 0.5rem;
+    font-weight: 400;
+    letter-spacing: 0.18em;
+    text-transform: lowercase;
+    color: rgba(255,255,255,0.38);
+    background: rgba(6,6,7,0.85);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 6px 12px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 40px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .skip-link {
+    position: fixed;
+    left: 16px;
+    top: 16px;
+    z-index: 100;
+    padding: 8px 12px;
+    background: var(--bg);
+    color: var(--text-1);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-decoration: none;
+    border: 1px solid var(--accent);
+    transform: translateY(-200%);
+  }
+  .skip-link:focus,
+  .skip-link:focus-visible {
+    transform: translateY(0);
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .content {
+    max-width: 640px;
+    width: 100%;
+    position: relative;
+    background: var(--bg);
+    z-index: 1;
+  }
+
+  .name {
+    font-family: var(--serif);
+    font-size: clamp(2.4rem, 5.5vw, 3.6rem);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    color: var(--text-1);
+    animation: fadeUp 0.8s ease both;
+  }
+  .name em {
+    font-style: italic;
+    font-weight: 400;
+    color: var(--accent);
+  }
+
+  .role {
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    font-weight: 400;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    /* dedicated AA rest (~5.28:1 on #060607); leave --text-2 / .proof-line alone */
+    color: rgba(255,255,255,0.50);
+    margin-bottom: 6px;
+    animation: fadeUp 0.8s ease 0.1s both;
+  }
+
+  /* ONE quiet caption under role — not a second headline */
+  .proof-line {
+    font-family: var(--mono);
+    font-size: 0.56rem;
+    font-weight: 300;
+    letter-spacing: 0.02em; /* micro-tighten: patent · Tate caption, clear of Rosero gold */
+    line-height: 1.6;
+    color: rgba(255,255,255,0.36);
+    margin-bottom: 40px;
+    animation: fadeUp 0.8s ease 0.12s both;
+  }
+  .proof-line a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: color 0.25s ease, border-color 0.25s ease;
+    border-radius: 1px;
+    white-space: nowrap; /* wrap only at · — two items read as one caption phrase */
+  }
+  .proof-line a:hover {
+    color: var(--text-1); /* white/brighten — not gold (Rosero owns gold) */
+    border-bottom-color: rgba(255,255,255,0.22);
+  }
+  .proof-line a:focus-visible {
+    color: var(--text-1);
+    border-bottom-color: rgba(255,255,255,0.22);
+    outline: 1px solid var(--accent-dim);
+    outline-offset: 3px;
+  }
+  .proof-sep {
+    margin: 0 0.32em;
+    color: rgba(255,255,255,0.18);
+    user-select: none;
+  }
+  .bio {
+    font-family: var(--serif);
+    font-size: 1.2rem;
+    font-weight: 300;
+    line-height: 1.75;
+    /* readable at rest — no hover-to-read */
+    color: rgba(255,255,255,0.72);
+    margin-bottom: 40px;
+    max-width: 520px;
+    animation: fadeUp 0.8s ease 0.2s both;
+    transition: color 0.4s ease;
+  }
+  .bio:hover {
+    color: rgba(255,255,255,0.92);
+  }
+  .bio a {
+    color: var(--accent-dim);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(200,164,78,0.15);
+    transition: all 0.3s;
+  }
+  .bio a:hover {
+    color: var(--accent);
+    border-color: rgba(200,164,78,0.4);
+  }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 0.44rem;
+    font-weight: 500;
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    margin-bottom: 20px;
+    animation: fadeUp 0.8s ease 0.3s both;
+  }
+
+  .projects {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-bottom: 56px;
+    animation: fadeUp 0.8s ease 0.35s both;
+  }
+
+  .doors {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0 0 40px;
+    animation: fadeUp 0.8s ease 0.28s both;
+  }
+
+  .door {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 18px 0;
+    margin: 0;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    border-bottom: none;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.3s ease;
+  }
+  .door:last-child {
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .door-title {
+    font-family: var(--serif);
+    font-size: 1.35rem;
+    font-weight: 400;
+    color: var(--text-1);
+    line-height: 1.2;
+    transition: color 0.3s ease;
+  }
+  .door-desc {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    font-weight: 300;
+    color: var(--text-2);
+    letter-spacing: 0.02em;
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+  .door-icon {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--serif);
+    font-size: 1.2rem;
+    font-weight: 400;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+  /* Optical: lowercase z reads lighter than ∂ — bump weight/size on icon only */
+  .door-icon-z {
+    font-style: normal;
+    font-size: 1.62rem;
+    font-weight: 600;
+  }
+  .door:hover .door-title,
+  .door:focus-visible .door-title { color: #fff; }
+  /* Peer doors: ∂ and z both fill gold on hover; projects stay quieter */
+  .door:hover .door-icon,
+  .door:focus-visible .door-icon {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+  }
+  .door:hover {
+    border-top-color: rgba(200,164,78,0.22);
+    border-bottom-color: rgba(200,164,78,0.22);
+  }
+  .door:focus-visible {
+    outline: 1px solid var(--accent-dim);
+    outline-offset: 6px;
+  }
+
+  .project {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 8px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    text-decoration: none;
+    transition: color 0.3s ease, border-color 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .project:first-child { border-radius: 0; }
+  .project:last-child { border-radius: 0; border-bottom: none; }
+
+  .project::before { display: none; }
+  .project:hover {
+    border-color: rgba(255,255,255,0.06);
+  }
+  .project:focus-visible {
+    outline: 1px solid var(--accent-dim);
+    outline-offset: 4px;
+  }
+
+  .project-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: relative;
+    z-index: 1;
+  }
+  .project-icon {
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.25);
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+  }
+  .project-name {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--text-1);
+    letter-spacing: 0.02em;
+    transition: color 0.3s ease;
+  }
+  .project-desc {
+    font-family: var(--mono);
+    font-size: 0.55rem;
+    font-weight: 300;
+    color: var(--text-2);
+    letter-spacing: 0.03em;
+    margin-top: 2px;
+    transition: color 0.3s ease;
+  }
+  .project-arrow {
+    font-size: 0.65rem;
+    color: var(--text-2);
+    transition: all 0.3s;
+    position: relative;
+    z-index: 1;
+  }
+  .project:hover .project-arrow {
+    color: var(--accent);
+    transform: translateX(3px);
+  }
+  .project:hover .project-name { color: #fff; }
+  .project:hover .project-desc { color: rgba(255,255,255,0.55); }
+  /* Quiet row hover — no gold fill (peer doors own that) */
+  .project:hover .project-icon {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.22);
+    color: rgba(255,255,255,0.55);
+  }
+
+  .links {
+    display: flex;
+    justify-content: flex-start;
+    gap: 24px;
+    margin-bottom: 36px;
+    animation: fadeUp 0.8s ease 0.05s both;
+  }
+  .links a {
+    font-family: var(--mono);
+    font-size: 0.55rem;
+    font-weight: 400;
+    color: var(--text-2);
+    text-decoration: none;
+    letter-spacing: 0.12em;
+    transition: color 0.3s;
+    text-transform: lowercase;
+  }
+  .links a:hover { color: var(--text-1); }
+
+  .foot {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--mono);
+    font-size: 0.42rem;
+    color: var(--text-3);
+    letter-spacing: 0.2em;
+    z-index: 1;
+    opacity: 0;
+    animation: fadeUp 0.8s ease 0.6s both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 600px) {
+    #bg { display: none; }
+    .preview-flag {
+      font-size: 0.44rem;
+      letter-spacing: 0.12em;
+      top: 10px;
+      padding: 5px 10px;
+    }
+    .page { padding: 48px 24px; padding-top: 60px; }
+    .name { font-size: 2rem; }
+    .bio { font-size: 1.05rem; color: rgba(255,255,255,0.74); }
+    .proof-line {
+      font-size: 0.5rem;
+      letter-spacing: 0.012em;
+      line-height: 1.75; /* soft wrap — patent · Tate stay one caption */
+      max-width: 100%;
+    }
+    .proof-sep { margin: 0 0.26em; }
+    .project { padding: 14px 0; }
+    .project:active .project-icon {
+      background: rgba(255,255,255,0.1);
+      border-color: rgba(255,255,255,0.28);
+      color: rgba(255,255,255,0.65);
+    }
+    .project:active .project-arrow { color: var(--accent); }
+    .door:active .door-icon {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--bg);
+    }
+    .links { gap: 18px; flex-wrap: wrap; }
+  }
+
+  /* Narrow: keep patent · Tate as one short caption */
+  @media (max-width: 400px) {
+    .proof-line {
+      font-size: 0.48rem;
+      letter-spacing: 0.01em;
+    }
+    .proof-sep { margin: 0 0.2em; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #bg { display: none; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0s !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      transition-delay: 0s !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="preview-flag" aria-hidden="true">preview · the proof line · two doors · not live</div>
+<canvas id="bg"></canvas>
+
+<div class="page">
+  <div class="content" id="main">
+    <div class="links">
+      <a href="mailto:edwinrosero@gmail.com">email</a>
+      <a href="https://edwinrosero.substack.com/" target="_blank" rel="noopener">substack</a>
+    </div>
+
+    <h1 class="name">Edwin <em>Rosero</em></h1>
+    <div class="role">Creative Technologist · Designer</div>
+
+    <p class="proof-line">
+      <a href="https://patents.google.com/patent/US11803885B2/en" target="_blank" rel="noopener">US 11,803,885</a><span class="proof-sep" aria-hidden="true">·</span><a href="https://www.tate.org.uk/whats-on/tate-britain/bp-loud-tate-2014-code" target="_blank" rel="noopener">Tate 2014</a>
+    </p>
+
+    <p class="bio">
+      I'm drawn to the moment where intent slips, and something else appears:
+      patterns that listen back, structures that react, atmospheres that feel
+      almost alive. If there's a theme, it's emergence.
+    </p>
+
+    <div class="doors">
+      <a href="https://edwinrosero.com/research/" class="door">
+        <div class="door-copy">
+          <div class="door-title">The Discrete Jacobian</div>
+          <div class="door-desc">Ancestral injectivity, causal history, and graph rewriting</div>
+        </div>
+        <div class="door-icon" aria-hidden="true">∂</div>
+      </a>
+      <a href="../zarankiewicz/" class="door" id="door-zarankiewicz">
+        <div class="door-copy">
+          <div class="door-title">Zarankiewicz</div>
+          <div class="door-desc">Exact terms for OEIS A006615 and A006625</div>
+        </div>
+        <div class="door-icon door-icon-z" aria-hidden="true">z</div>
+      </a>
+    </div>
+
+    <div class="section-label">Projects</div>
+    <div class="projects">
+      <a href="https://snares.ai" target="_blank" rel="noopener" class="project">
+        <div class="project-left">
+          <div class="project-icon">◎</div>
+          <div>
+            <div class="project-name">SNARES</div>
+            <div class="project-desc">AI-powered sound reactive visualizer</div>
+          </div>
+        </div>
+        <span class="project-arrow">→</span>
+      </a>
+      <a href="https://gravitygolf.xyz" target="_blank" rel="noopener" class="project">
+        <div class="project-left">
+          <div class="project-icon">●</div>
+          <div>
+            <div class="project-name">Gravity Golf</div>
+            <div class="project-desc">Physics-based golf game</div>
+          </div>
+        </div>
+        <span class="project-arrow">→</span>
+      </a>
+      <a href="https://edwinrosero.com/fringe/" class="project">
+        <div class="project-left">
+          <div class="project-icon">≈</div>
+          <div>
+            <div class="project-name">Fringe</div>
+            <div class="project-desc">Photonic synthesizer · web or plugin</div>
+          </div>
+        </div>
+        <span class="project-arrow">→</span>
+      </a>
+      <a href="https://www.instagram.com/walkthroughwonder/" target="_blank" rel="noopener" class="project">
+        <div class="project-left">
+          <div class="project-icon">⬡</div>
+          <div>
+            <div class="project-name">Walkthroughwonder</div>
+            <div class="project-desc">Creative technology & visual experiments</div>
+          </div>
+        </div>
+        <span class="project-arrow">→</span>
+      </a>
+      <a href="https://edwinrosero.com/research/app" class="project">
+        <div class="project-left">
+          <div class="project-icon">◇</div>
+          <div>
+            <div class="project-name">Topological Light Propagation</div>
+            <div class="project-desc">Companion interactive multiway-system explorer</div>
+          </div>
+        </div>
+        <span class="project-arrow">→</span>
+      </a>
+      <a href="https://annaseaman.medium.com/a-bitcoin-key-turned-money-into-poetry-55c1ba9fa408" target="_blank" rel="noopener" class="project">
+        <div class="project-left">
+          <div class="project-icon">✦</div>
+          <div>
+            <div class="project-name">Press</div>
+            <div class="project-desc">A Bitcoin Key Turned Money Into Poetry</div>
+          </div>
+        </div>
+        <span class="project-arrow">→</span>
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function() {
+  const c = document.getElementById('bg');
+  const phoneViewport = window.matchMedia('(max-width: 600px)').matches;
+  const phoneDevice = navigator.maxTouchPoints > 0 && Math.min(screen.width, screen.height) <= 600;
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (phoneViewport || phoneDevice || reducedMotion) {
+    c.hidden = true;
+    return;
+  }
+  const ctx = c.getContext('2d');
+  let w, h, dpr;
+  const P = [];
+  const isMobileDev = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  const N = isMobileDev ? 100 : 220;
+  const ED = 150;
+  const HD = 110;
+  const TRAIL_MAX = 18;
+  const TRAIL_SPAWN_DIST = 28;
+  let mx = -9999, my = -9999, lastTx = -9999, lastTy = -9999;
+  let mxCSS = -9999, myCSS = -9999;
+  let lastMoveTime = Date.now();
+  let globalFade = 1.0;
+  const isMobile = isMobileDev;
+
+  if (isMobile) {
+    document.addEventListener('touchstart', function(e) {
+      const t = e.touches[0];
+      mx = t.clientX * dpr;
+      my = t.clientY * dpr;
+      mxCSS = t.clientX;
+      myCSS = t.clientY;
+      lastMoveTime = Date.now();
+      for (let b = 0; b < 5; b++) {
+        const angle = Math.random() * 6.28;
+        const speed = 0.3 + Math.random() * 0.5;
+        P.push({
+          x: mx + (Math.random() - 0.5) * 20 * dpr,
+          y: my + (Math.random() - 0.5) * 20 * dpr,
+          vx: Math.cos(angle) * speed * dpr,
+          vy: Math.sin(angle) * speed * dpr,
+          r: (0.8 + Math.random() * 0.8) * dpr,
+          ph: Math.random() * 6.28,
+          ps: 0.01 + Math.random() * 0.02,
+          trail: true,
+          life: 1.0,
+          decay: 0.005 + Math.random() * 0.005
+        });
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function(e) {
+      const t = e.touches[0];
+      mx = t.clientX * dpr;
+      my = t.clientY * dpr;
+      mxCSS = t.clientX;
+      myCSS = t.clientY;
+      lastMoveTime = Date.now();
+      const dx = mx - lastTx, dy = my - lastTy;
+      if (dx * dx + dy * dy > TRAIL_SPAWN_DIST * TRAIL_SPAWN_DIST * dpr * dpr) {
+        P.push({
+          x: mx, y: my,
+          vx: (Math.random() - 0.5) * 0.15 * dpr,
+          vy: (Math.random() - 0.5) * 0.15 * dpr,
+          r: (0.8 + Math.random() * 0.8) * dpr,
+          ph: Math.random() * 6.28,
+          ps: 0.01 + Math.random() * 0.02,
+          trail: true,
+          life: 1.0,
+          decay: 0.003 + Math.random() * 0.004
+        });
+        lastTx = mx; lastTy = my;
+        let trailCount = 0;
+        for (let i = P.length - 1; i >= 0; i--) { if (P[i].trail) trailCount++; }
+        while (trailCount > TRAIL_MAX) {
+          for (let i = 0; i < P.length; i++) { if (P[i].trail) { P.splice(i, 1); trailCount--; break; } }
+        }
+      }
+    }, { passive: true });
+
+    document.addEventListener('touchend', function() {
+      mx = -9999; my = -9999;
+    });
+  }
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    w = c.width = window.innerWidth * dpr;
+    h = c.height = window.innerHeight * dpr;
+    c.style.width = window.innerWidth + 'px';
+    c.style.height = window.innerHeight + 'px';
+  }
+
+  document.addEventListener('mousemove', function(e) {
+    mx = e.clientX * dpr;
+    my = e.clientY * dpr;
+    mxCSS = e.clientX;
+    myCSS = e.clientY;
+    lastMoveTime = Date.now();
+    const dx = mx - lastTx, dy = my - lastTy;
+    if (dx * dx + dy * dy > TRAIL_SPAWN_DIST * TRAIL_SPAWN_DIST * dpr * dpr) {
+      P.push({
+        x: mx, y: my,
+        vx: (Math.random() - 0.5) * 0.15 * dpr,
+        vy: (Math.random() - 0.5) * 0.15 * dpr,
+        r: (0.8 + Math.random() * 0.8) * dpr,
+        ph: Math.random() * 6.28,
+        ps: 0.01 + Math.random() * 0.02,
+        trail: true,
+        life: 1.0,
+        decay: 0.003 + Math.random() * 0.004
+      });
+      lastTx = mx; lastTy = my;
+      let trailCount = 0;
+      for (let i = P.length - 1; i >= 0; i--) {
+        if (P[i].trail) trailCount++;
+      }
+      while (trailCount > TRAIL_MAX) {
+        for (let i = 0; i < P.length; i++) {
+          if (P[i].trail) { P.splice(i, 1); trailCount--; break; }
+        }
+      }
+    }
+  });
+
+  document.addEventListener('mouseleave', function() {
+    mx = -9999; my = -9999;
+  });
+
+  function init() {
+    resize();
+    for (let i = 0; i < N; i++) {
+      P.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        hx: 0, hy: 0,
+        vx: (Math.random() - 0.5) * 0.25 * dpr,
+        vy: (Math.random() - 0.5) * 0.25 * dpr,
+        bvx: 0, bvy: 0,
+        r: (0.5 + Math.random() * 1.2) * dpr,
+        ph: Math.random() * 6.28,
+        ps: 0.004 + Math.random() * 0.012
+      });
+      const last = P[P.length-1];
+      last.bvx = last.vx;
+      last.bvy = last.vy;
+      last.hx = last.x;
+      last.hy = last.y;
+      last.glowSeed = Math.random() * 1000;
+    }
+  }
+
+  let _time = 0;
+  function frame() {
+    _time += 0.016;
+
+    const idleMs = Date.now() - lastMoveTime;
+    if (isMobile) {
+      const idleSec = Math.max(0, (idleMs - 2000) / 1000);
+      const targetFade = idleSec > 0 ? Math.max(0.45, 1.0 - idleSec * 0.3) : 1.0;
+      globalFade += (targetFade - globalFade) * 0.03;
+    } else {
+      const idleSec = Math.max(0, (idleMs - 750) / 1000);
+      const targetFade = idleSec > 0 ? Math.max(0.25, 1.0 - idleSec * 0.6) : 1.0;
+      globalFade += (targetFade - globalFade) * 0.04;
+    }
+    c.style.opacity = globalFade;
+
+    ctx.clearRect(0, 0, w, h);
+
+    const colEl = document.querySelector('.content');
+    let clipApplied = false;
+    if (colEl) {
+      const r = colEl.getBoundingClientRect();
+      const left = r.left * dpr;
+      const right = r.right * dpr;
+      if (right > left) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, Math.max(0, left), h);
+        ctx.rect(Math.min(w, right), 0, Math.max(0, w - right), h);
+        ctx.clip();
+        clipApplied = true;
+      }
+    }
+
+    const len = P.length;
+
+    let pushX = -9999, pushY = -9999;
+    let pushW = 0, pushH = 0;
+    if (!isMobile) {
+      const hoveredProject = document.querySelector('.project:hover');
+      if (hoveredProject) {
+        const rect = hoveredProject.getBoundingClientRect();
+        pushX = (rect.left + rect.width / 2) * dpr;
+        pushY = (rect.top + rect.height / 2) * dpr;
+        pushW = rect.width * dpr / 2;
+        pushH = rect.height * dpr / 2;
+      }
+    }
+
+    let heroPushX = -9999, heroPushY = -9999;
+    if (!isMobile) {
+      const heroEls = ['.name', '.role', '.proof-line', '.bio'];
+      for (let he = 0; he < heroEls.length; he++) {
+        const el = document.querySelector(heroEls[he]);
+        if (el && el.matches(':hover')) {
+          const rect = el.getBoundingClientRect();
+          heroPushX = (rect.left + rect.width / 2) * dpr;
+          heroPushY = (rect.top + rect.height / 2) * dpr;
+          break;
+        }
+      }
+    }
+
+    if (!frame._textRects || frame._fc % (isMobile ? 30 : 10) === 0) {
+      frame._textRects = [];
+      const els = document.querySelectorAll('.name, .role, .proof-line, .bio, .section-label, .door-title, .door-desc, .project-name, .project-desc, .links a, .foot');
+      for (let e = 0; e < els.length; e++) {
+        const r = els[e].getBoundingClientRect();
+        frame._textRects.push({
+          l: r.left * dpr,
+          t: r.top * dpr,
+          r: r.right * dpr,
+          b: r.bottom * dpr
+        });
+      }
+    }
+    frame._fc = (frame._fc || 0) + 1;
+    const textRects = frame._textRects;
+
+    for (let i = len - 1; i >= 0; i--) {
+      const p = P[i];
+      p.x += p.vx; p.y += p.vy; p.ph += p.ps;
+
+      if (p.trail) {
+        p.life -= p.decay;
+        if (p.life <= 0) { p._dead = true; continue; }
+      } else {
+        if (p.x < -60 * dpr || p.x > w + 60 * dpr || p.y < -60 * dpr || p.y > h + 60 * dpr) {
+          p._dead = true; continue;
+        }
+
+        const ecx = w / 2, ecy = h / 2;
+        const edx = p.x - ecx, edy = p.y - ecy;
+        const edist = Math.sqrt(edx * edx + edy * edy) || 1;
+        p.vx += (edx / edist) * 0.003 * dpr;
+        p.vy += (edy / edist) * 0.003 * dpr;
+
+        if (mx > 0) {
+          const dx = mx - p.x, dy = my - p.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const pull = 200 * dpr;
+          if (dist < pull && dist > 1) {
+            const force = (1 - dist / pull) * 0.02;
+            p.vx += (dx / dist) * force * dpr;
+            p.vy += (dy / dist) * force * dpr;
+            p.vx *= 0.998;
+            p.vy *= 0.998;
+          }
+        }
+
+        const attrRange = 250 * dpr;
+        const attrRange2 = attrRange * attrRange;
+        const repelDist = 30 * dpr;
+        let ax = 0, ay = 0, neighbors = 0;
+        const step = isMobile ? 5 : 3;
+        for (let j = i % step; j < N; j += step) {
+          if (j === i || P[j].trail) continue;
+          const adx = P[j].x - p.x, ady = P[j].y - p.y;
+          const ad2 = adx * adx + ady * ady;
+          if (ad2 < attrRange2 && ad2 > 1) {
+            const adist = Math.sqrt(ad2);
+            if (adist < repelDist) {
+              ax -= (adx / adist) * 0.003;
+              ay -= (ady / adist) * 0.003;
+            } else {
+              ax += (adx / adist) * 0.001;
+              ay += (ady / adist) * 0.001;
+            }
+            neighbors++;
+          }
+        }
+        if (neighbors > 0) {
+          p.vx += ax * dpr * step;
+          p.vy += ay * dpr * step;
+        }
+
+        if (pushX > 0) {
+          const cx = Math.max(pushX - pushW, Math.min(p.x, pushX + pushW));
+          const cy = Math.max(pushY - pushH, Math.min(p.y, pushY + pushH));
+          const pdx = p.x - cx, pdy = p.y - cy;
+          const pdist = Math.sqrt(pdx * pdx + pdy * pdy);
+          const pradius = 200 * dpr;
+          if (pdist < pradius && pdist > 1) {
+            const pforce = (1 - pdist / pradius) * 0.6;
+            p.vx += (pdx / pdist) * pforce * dpr;
+            p.vy += (pdy / pdist) * pforce * dpr;
+          } else if (pdist < 1) {
+            const fdx = p.x - pushX, fdy = p.y - pushY;
+            const fd = Math.sqrt(fdx * fdx + fdy * fdy) || 1;
+            p.vx += (fdx / fd) * 0.8 * dpr;
+            p.vy += (fdy / fd) * 0.8 * dpr;
+          }
+        }
+
+        if (heroPushX > 0) {
+          const hdx = p.x - heroPushX, hdy = p.y - heroPushY;
+          const hdist = Math.sqrt(hdx * hdx + hdy * hdy);
+          const hradius = 350 * dpr;
+          if (hdist < hradius && hdist > 1) {
+            const hforce = (1 - hdist / hradius) * 0.4;
+            p.vx += (hdx / hdist) * hforce * dpr;
+            p.vy += (hdy / hdist) * hforce * dpr;
+          }
+        }
+
+        for (let t = 0; t < textRects.length; t++) {
+          const tr = textRects[t];
+          const cx = Math.max(tr.l, Math.min(p.x, tr.r));
+          const cy = Math.max(tr.t, Math.min(p.y, tr.b));
+          const tdx = p.x - cx, tdy = p.y - cy;
+          const tdist = Math.sqrt(tdx * tdx + tdy * tdy);
+          const trad = 100 * dpr;
+          if (tdist < trad && tdist > 0.5) {
+            const tf = (1 - tdist / trad) * 0.02;
+            p.vx += (tdx / tdist) * tf * dpr;
+            p.vy += (tdy / tdist) * tf * dpr;
+          } else if (tdist < 0.5) {
+            const rcx = (tr.l + tr.r) / 2, rcy = (tr.t + tr.b) / 2;
+            const fdx = p.x - rcx, fdy = p.y - rcy;
+            const fd = Math.sqrt(fdx * fdx + fdy * fdy) || 1;
+            p.vx += (fdx / fd) * 0.04 * dpr;
+            p.vy += (fdy / fd) * 0.04 * dpr;
+          }
+        }
+
+        if (isMobile && mx > 0) {
+          const tdx = p.x - mx, tdy = p.y - my;
+          const tdist = Math.sqrt(tdx * tdx + tdy * tdy);
+          const tradius = 200 * dpr;
+          if (tdist < tradius && tdist > 1) {
+            const tforce = (1 - tdist / tradius) * 0.4;
+            p.vx += (tdx / tdist) * tforce * dpr;
+            p.vy += (tdy / tdist) * tforce * dpr;
+          }
+        }
+
+        const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+        const maxSpeed = 2.5 * dpr;
+        if (speed > maxSpeed) {
+          p.vx = (p.vx / speed) * maxSpeed;
+          p.vy = (p.vy / speed) * maxSpeed;
+        }
+        p.vx += (p.bvx - p.vx) * 0.03;
+        p.vy += (p.bvy - p.vy) * 0.03;
+        p.vx += (p.hx - p.x) * 0.0008;
+        p.vy += (p.hy - p.y) * 0.0008;
+        p.hx += p.bvx;
+        p.hy += p.bvy;
+      }
+    }
+
+    const nonTrailCount = P.filter(p => !p.trail && !p._dead).length;
+    if (nonTrailCount < N) {
+      const deficit = N - nonTrailCount;
+      for (let s = 0; s < deficit; s++) {
+        const angle = Math.random() * 6.28;
+        const radius = (50 + Math.random() * 200) * dpr;
+        const nx = w / 2 + Math.cos(angle) * radius;
+        const ny = h / 2 + Math.sin(angle) * radius;
+        const bvx = (Math.random() - 0.5) * 0.25 * dpr;
+        const bvy = (Math.random() - 0.5) * 0.25 * dpr;
+        P.push({
+          x: nx, y: ny,
+          hx: nx, hy: ny,
+          vx: bvx, vy: bvy,
+          bvx: bvx, bvy: bvy,
+          r: (0.5 + Math.random() * 1.2) * dpr,
+          ph: Math.random() * 6.28,
+          ps: 0.004 + Math.random() * 0.012,
+          glowSeed: Math.random() * 1000
+        });
+      }
+    }
+
+    const ed = ED * dpr, hd = HD * dpr;
+    const ed2 = ed * ed, hd2 = hd * hd;
+    const hn = new Set();
+    const goldNodes = new Set();
+    const pLen = P.length;
+
+    for (let i = 0; i < pLen; i++) {
+      for (let j = i + 1; j < pLen; j++) {
+        const dx1 = P[i].x - P[j].x, dy1 = P[i].y - P[j].y;
+        const d1 = dx1*dx1 + dy1*dy1;
+        if (d1 > hd2) continue;
+        for (let k = j + 1; k < pLen; k++) {
+          const dx2 = P[i].x - P[k].x, dy2 = P[i].y - P[k].y;
+          if (dx2*dx2 + dy2*dy2 > hd2) continue;
+          const dx3 = P[j].x - P[k].x, dy3 = P[j].y - P[k].y;
+          const d3 = dx3*dx3 + dy3*dy3;
+          if (d3 > hd2) continue;
+
+          const avg = (Math.sqrt(d1) + Math.sqrt(dx2*dx2+dy2*dy2) + Math.sqrt(d3)) / 3;
+          const hasTrail = (P[i].trail || P[j].trail || P[k].trail);
+          const trailMult = hasTrail ? 1.8 : 1;
+          const trailLife = Math.min(
+            P[i].trail ? P[i].life : 1,
+            P[j].trail ? P[j].life : 1,
+            P[k].trail ? P[k].life : 1
+          );
+          const a = (1 - avg / hd) * 0.044 * trailMult * trailLife;
+          const cr = hasTrail ? '200,164,78' : '180,180,190';
+
+          ctx.beginPath();
+          ctx.moveTo(P[i].x, P[i].y);
+          ctx.lineTo(P[j].x, P[j].y);
+          ctx.lineTo(P[k].x, P[k].y);
+          ctx.closePath();
+          ctx.fillStyle = 'rgba(' + cr + ',' + a + ')';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(' + cr + ',' + (a * 3) + ')';
+          ctx.lineWidth = 0.6 * dpr;
+          ctx.stroke();
+
+          hn.add(i); hn.add(j); hn.add(k);
+          if (hasTrail) { goldNodes.add(i); goldNodes.add(j); goldNodes.add(k); }
+        }
+      }
+    }
+
+    for (let i = 0; i < pLen; i++) {
+      for (let j = i + 1; j < pLen; j++) {
+        const dx = P[i].x - P[j].x, dy = P[i].y - P[j].y;
+        const d = dx*dx + dy*dy;
+        if (d < ed2) {
+          const life = Math.min(P[i].trail ? P[i].life : 1, P[j].trail ? P[j].life : 1);
+          const hasT = P[i].trail || P[j].trail;
+          const s1 = P[i].glowSeed || 0, s2 = P[j].glowSeed || 0;
+          const glowVal = Math.sin(_time * 0.4 + s1 + s2);
+          const isGlowing = !hasT && glowVal > 0.92;
+          const baseA = (1 - Math.sqrt(d) / ed) * 0.08 * life;
+          const a = isGlowing ? baseA * 4 : baseA;
+          const ec = hasT ? '200,164,78' : isGlowing ? '220,185,60' : '160,160,170';
+          ctx.beginPath();
+          ctx.moveTo(P[i].x, P[i].y);
+          ctx.lineTo(P[j].x, P[j].y);
+          ctx.strokeStyle = 'rgba(' + ec + ',' + a + ')';
+          ctx.lineWidth = isGlowing ? 1.2 * dpr : 0.4 * dpr;
+          ctx.stroke();
+          if (isGlowing) { goldNodes.add(i); goldNodes.add(j); }
+        }
+      }
+    }
+
+    for (let i = 0; i < pLen; i++) {
+      if (P[i].trail) continue;
+      for (let j = 0; j < pLen; j++) {
+        if (!P[j].trail) continue;
+        const dx = P[i].x - P[j].x, dy = P[i].y - P[j].y;
+        if (dx * dx + dy * dy < ed2) {
+          goldNodes.add(i);
+          break;
+        }
+      }
+    }
+
+    for (let i = 0; i < pLen; i++) {
+      const p = P[i];
+      const g = 0.5 + 0.5 * Math.sin(p.ph);
+      const ih = hn.has(i);
+      const life = p.trail ? p.life : 1;
+      const isGold = p.trail || goldNodes.has(i);
+
+      if (ih) {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r * 5, 0, 6.28);
+        const gc = isGold ? '200,164,78' : '160,160,170';
+        ctx.fillStyle = 'rgba(' + gc + ',' + ((0.02 + g * 0.02) * life) + ')';
+        ctx.fill();
+      }
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r * (p.trail ? 1 + life * 0.5 : 1), 0, 6.28);
+      const a = ih ? (0.36 + g * 0.32) * life : (0.1 + g * 0.12) * life;
+      ctx.fillStyle = isGold
+        ? 'rgba(220,180,80,' + a + ')'
+        : 'rgba(210,210,220,' + a + ')';
+      ctx.fill();
+    }
+
+    if (clipApplied) ctx.restore();
+
+    for (let i = P.length - 1; i >= 0; i--) {
+      if (P[i]._dead) P.splice(i, 1);
+    }
+
+    requestAnimationFrame(frame);
+  }
+
+  window.addEventListener('resize', resize);
+  init();
+  requestAnimationFrame(frame);
+})();
+</script>
+<script>
+(function () {
+  var a = document.getElementById('door-zarankiewicz');
+  if (!a) return;
+  // :4180 docroot is preview/ only — ../zarankiewicz/ escapes → 404.
+  // Sibling serve is :4181. Monorepo :8765 keeps ../zarankiewicz/.
+  if (location.port === '4180') {
+    a.setAttribute('href', 'http://127.0.0.1:4181/');
+  }
+})();
+</script>
+
+</body>
+</html>

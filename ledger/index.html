@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>preview · the ledger · Edwin Rosero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060607;
+    --page: #0a0a0b;
+    --page-face: #0c0c0d;
+    --text-1: rgba(255,255,255,0.92);
+    --text-2: rgba(255,255,255,0.55);
+    --text-3: rgba(255,255,255,0.36);
+    --text-4: rgba(255,255,255,0.22);
+    --line: rgba(255,255,255,0.09);
+    --line-hi: rgba(255,255,255,0.16);
+    --gold: #c8a44e;
+    --gold-dim: rgba(200,164,78,0.38);
+    --gold-hair: rgba(200,164,78,0.18);
+    --serif: 'Cormorant Garamond', Georgia, serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text-1);
+    font-family: var(--mono);
+    font-weight: 300;
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    background: var(--gold);
+    color: #060607;
+    padding: 8px 14px;
+    z-index: 100;
+    font-size: 12px;
+  }
+  .skip-link:focus { left: 12px; top: 12px; }
+  .preview-flag {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    text-align: center;
+    padding: 7px 12px;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(200,164,78,0.75);
+    background: rgba(6,6,7,0.92);
+    border-bottom: 1px solid rgba(200,164,78,0.18);
+    pointer-events: none;
+  }
+  .page {
+    max-width: 740px;
+    margin: 0 auto;
+    padding: 56px 22px 88px;
+  }
+  @media (min-width: 900px) {
+    .page { padding: 60px 36px 100px; }
+  }
+
+  .links {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 16px;
+  }
+  .links a {
+    color: var(--text-3);
+    text-decoration: none;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: lowercase;
+  }
+  .links a:hover,
+  .links a:focus-visible {
+    color: var(--text-1);
+    outline: none;
+  }
+
+  .mast { margin-bottom: 16px; }
+  .name {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(38px, 7vw, 54px);
+    line-height: 1.05;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+    color: var(--text-1);
+  }
+  .name em {
+    font-style: italic;
+    color: var(--gold);
+    font-weight: 300;
+  }
+  .lede {
+    margin: 0;
+    max-width: 36em;
+    font-family: var(--serif);
+    font-size: clamp(15px, 2.1vw, 18px);
+    font-weight: 300;
+    line-height: 1.45;
+    color: var(--text-2);
+  }
+
+  /* —— Material register —— */
+  .register {
+    position: relative;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.022) 0%, transparent 22%),
+      var(--page-face);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 2px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.045),
+      inset 0 -1px 0 rgba(0,0,0,0.5),
+      inset 0 -36px 60px rgba(0,0,0,0.22),
+      0 1px 0 rgba(255,255,255,0.025),
+      0 24px 56px rgba(0,0,0,0.45);
+    overflow: hidden;
+  }
+
+  /* Double hairline head — account-book rail */
+  .reg-rail {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 9px 16px 8px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.008) 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    box-shadow:
+      inset 0 -1px 0 rgba(0,0,0,0.35),
+      0 1px 0 rgba(255,255,255,0.02);
+  }
+  .reg-id {
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-4);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Column legend — quiet year/weight cue */
+  .reg-cols {
+    display: grid;
+    grid-template-columns: 48px 1fr 56px 28px;
+    gap: 8px 14px;
+    padding: 7px 16px 6px;
+    border-bottom: 1px solid var(--line);
+    font-size: 8px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.18);
+    font-weight: 400;
+  }
+  .reg-cols .c-wt { text-align: right; }
+  .reg-cols .c-mk { text-align: right; }
+
+  .reg-body { padding: 0 8px 2px; }
+  @media (min-width: 600px) {
+    .reg-body { padding: 0 12px 4px; }
+  }
+
+  .rubric {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 10px 8px 0;
+    font-size: 8px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.18);
+    font-weight: 400;
+  }
+  .rubric::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+  .rubric-first { margin-top: 8px; }
+
+  /* Rows — list is the door */
+  .row {
+    display: grid;
+    grid-template-columns: 48px 1fr 56px 28px;
+    gap: 3px 14px;
+    align-items: baseline;
+    padding: 9px 8px 8px;
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease;
+  }
+  .row::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 1px;
+    background: transparent;
+    transition: background 0.15s ease;
+  }
+  .row:hover,
+  .row:focus-visible {
+    background: rgba(255,255,255,0.02);
+    border-bottom-color: var(--line-hi);
+    outline: none;
+  }
+  .row:focus-visible {
+    box-shadow: inset 0 0 0 1px rgba(200,164,78,0.32);
+  }
+  .row:hover::before,
+  .row:focus-visible::before {
+    background: rgba(200,164,78,0.12);
+  }
+
+  /* Primary research — heavier weight */
+  .row-primary {
+    padding: 13px 8px 12px;
+  }
+  .row-primary + .row-primary {
+    border-top: none;
+  }
+
+  .num {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+    font-weight: 400;
+    transition: color 0.15s ease;
+  }
+  .row-primary .num {
+    color: var(--gold-dim);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+  }
+  .row:hover .num,
+  .row:focus-visible .num { color: var(--gold); }
+
+  .row-main { min-width: 0; }
+  .row-title {
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.74);
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+    display: block;
+  }
+  .row-primary .row-title {
+    font-size: 22px;
+    color: var(--text-1);
+    letter-spacing: 0.005em;
+  }
+  .row-desc {
+    margin-top: 3px;
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+    display: block;
+  }
+  .row-primary .row-desc {
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--text-2);
+  }
+
+  /* Quiet year/weight column */
+  .row-wt {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.16);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    justify-self: end;
+    transition: color 0.15s ease;
+  }
+  .row-primary .row-wt {
+    color: rgba(200,164,78,0.42);
+    letter-spacing: 0.14em;
+  }
+  .row:hover .row-wt,
+  .row:focus-visible .row-wt {
+    color: rgba(200,164,78,0.55);
+  }
+
+  .row-mark {
+    font-family: var(--serif);
+    font-size: 13px;
+    color: var(--text-4);
+    justify-self: end;
+    text-align: right;
+    transition: color 0.15s ease;
+  }
+  .row-primary .row-mark {
+    font-size: 16px;
+    color: rgba(200,164,78,0.55);
+  }
+  .row:hover .row-mark,
+  .row:focus-visible .row-mark { color: var(--gold); }
+
+  /* Tiny ledger footnote — not a heading */
+  .reg-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px 9px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.2);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
+  }
+  .reg-foot-rule {
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.05);
+  }
+  .reg-etch {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.28);
+    white-space: nowrap;
+  }
+  .reg-etch a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 1px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .reg-etch a:hover,
+  .reg-etch a:focus-visible {
+    color: rgba(255,255,255,0.7);
+    border-bottom-color: rgba(255,255,255,0.2);
+    outline: none;
+  }
+  .reg-etch .sep {
+    color: rgba(255,255,255,0.14);
+    margin: 0 0.6em;
+  }
+
+  .bio {
+    margin: 24px 0 0;
+    max-width: 40em;
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 300;
+    line-height: 1.55;
+    color: rgba(255,255,255,0.68);
+  }
+
+  @media (max-width: 560px) {
+    .reg-cols {
+      grid-template-columns: 36px 1fr 44px;
+      padding: 8px 12px 7px;
+    }
+    .reg-cols .c-mk { display: none; }
+    .row {
+      grid-template-columns: 36px 1fr 44px;
+      gap: 4px 10px;
+      padding: 13px 6px 12px;
+    }
+    .row-primary { padding: 16px 6px 15px; }
+    .row-mark { display: none; }
+    .row-primary .row-title { font-size: 20px; }
+    .reg-rail, .reg-foot { padding-left: 14px; padding-right: 14px; }
+    .rubric { margin-left: 6px; margin-right: 6px; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="preview-flag" aria-hidden="true">preview · the ledger · not live</div>
+
+<main class="page" id="main">
+  <div class="links">
+    <a href="mailto:edwinrosero@gmail.com">email</a>
+    <a href="https://edwinrosero.substack.com/" target="_blank" rel="noopener">substack</a>
+  </div>
+
+  <header class="mast">
+    <h1 class="name">Edwin <em>Rosero</em></h1>
+    <p class="lede">A numbered ledger of research and work.</p>
+  </header>
+
+  <section class="register" aria-label="Work ledger">
+    <div class="reg-rail">
+      <span class="reg-id">Register · ER-01</span>
+      <span class="reg-id">Folio</span>
+    </div>
+
+    <div class="reg-cols" aria-hidden="true">
+      <span class="c-no">No.</span>
+      <span class="c-en">Entry</span>
+      <span class="c-wt">Wt</span>
+      <span class="c-mk">·</span>
+    </div>
+
+    <div class="reg-body">
+      <div class="rubric rubric-first">Research</div>
+
+      <a class="row row-primary" href="https://edwinrosero.com/research/">
+        <span class="num">01</span>
+        <span class="row-main">
+          <span class="row-title">The Discrete Jacobian</span>
+          <span class="row-desc">Ancestral injectivity, causal history, and graph rewriting</span>
+        </span>
+        <span class="row-wt">I</span>
+        <span class="row-mark" aria-hidden="true">∂</span>
+      </a>
+      <a class="row row-primary" href="https://doi.org/10.5281/zenodo.21814869" target="_blank" rel="noopener">
+        <span class="num">02</span>
+        <span class="row-main">
+          <span class="row-title">Zarankiewicz</span>
+          <span class="row-desc">Exact terms for OEIS A006615 and A006625</span>
+        </span>
+        <span class="row-wt">I</span>
+        <span class="row-mark" aria-hidden="true">z</span>
+      </a>
+
+      <div class="rubric">Creations</div>
+
+      <a class="row" href="https://snares.ai" target="_blank" rel="noopener">
+        <span class="num">03</span>
+        <span class="row-main">
+          <span class="row-title">SNARES</span>
+          <span class="row-desc">AI-powered sound reactive visualizer</span>
+        </span>
+        <span class="row-wt">II</span>
+        <span class="row-mark" aria-hidden="true">◎</span>
+      </a>
+      <a class="row" href="https://gravitygolf.xyz" target="_blank" rel="noopener">
+        <span class="num">04</span>
+        <span class="row-main">
+          <span class="row-title">Gravity Golf</span>
+          <span class="row-desc">Physics-based golf game</span>
+        </span>
+        <span class="row-wt">II</span>
+        <span class="row-mark" aria-hidden="true">●</span>
+      </a>
+      <a class="row" href="https://edwinrosero.com/fringe/">
+        <span class="num">05</span>
+        <span class="row-main">
+          <span class="row-title">Fringe</span>
+          <span class="row-desc">Photonic synthesizer · web or plugin</span>
+        </span>
+        <span class="row-wt">II</span>
+        <span class="row-mark" aria-hidden="true">≈</span>
+      </a>
+      <a class="row" href="https://www.instagram.com/walkthroughwonder/" target="_blank" rel="noopener">
+        <span class="num">06</span>
+        <span class="row-main">
+          <span class="row-title">Walkthroughwonder</span>
+          <span class="row-desc">Creative technology &amp; visual experiments</span>
+        </span>
+        <span class="row-wt">II</span>
+        <span class="row-mark" aria-hidden="true">⬡</span>
+      </a>
+      <a class="row" href="https://edwinrosero.com/research/app">
+        <span class="num">07</span>
+        <span class="row-main">
+          <span class="row-title">Topological Light Propagation</span>
+          <span class="row-desc">Companion interactive multiway-system explorer</span>
+        </span>
+        <span class="row-wt">II</span>
+        <span class="row-mark" aria-hidden="true">◇</span>
+      </a>
+      <a class="row" href="https://annaseaman.medium.com/a-bitcoin-key-turned-money-into-poetry-55c1ba9fa408" target="_blank" rel="noopener">
+        <span class="num">08</span>
+        <span class="row-main">
+          <span class="row-title">Press</span>
+          <span class="row-desc">A Bitcoin Key Turned Money Into Poetry</span>
+        </span>
+        <span class="row-wt">II</span>
+        <span class="row-mark" aria-hidden="true">✦</span>
+      </a>
+    </div>
+
+    <div class="reg-foot">
+      <span class="reg-foot-rule" aria-hidden="true"></span>
+      <span class="reg-etch">
+        <a href="https://patents.google.com/patent/US11803885B2/en" target="_blank" rel="noopener">US 11,803,885</a>
+        <span class="sep" aria-hidden="true">·</span>
+        <a href="https://www.tate.org.uk/whats-on/tate-britain/bp-loud-tate-2014-code" target="_blank" rel="noopener">Tate 2014</a>
+      </span>
+      <span class="reg-foot-rule" aria-hidden="true"></span>
+    </div>
+  </section>
+
+  <p class="bio">
+    I'm drawn to the moment where intent slips, and something else appears:
+    patterns that listen back, structures that react, atmospheres that feel
+    almost alive. If there's a theme, it's emergence.
+  </p>
+</main>
+</body>
+</html>

@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>preview · the index ritual · Edwin Rosero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060607;
+    --plate: #0a0a0b;
+    --plate-face: #0c0c0d;
+    --text-1: rgba(255,255,255,0.92);
+    --text-2: rgba(255,255,255,0.55);
+    --text-3: rgba(255,255,255,0.36);
+    --text-4: rgba(255,255,255,0.22);
+    --line: rgba(255,255,255,0.09);
+    --line-hi: rgba(255,255,255,0.16);
+    --gold: #c8a44e;
+    --gold-dim: rgba(200,164,78,0.38);
+    --gold-hair: rgba(200,164,78,0.18);
+    --serif: 'Cormorant Garamond', Georgia, serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text-1);
+    font-family: var(--mono);
+    font-weight: 300;
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    background: var(--gold);
+    color: #060607;
+    padding: 8px 14px;
+    z-index: 100;
+    font-size: 12px;
+  }
+  .skip-link:focus { left: 12px; top: 12px; }
+  .preview-flag {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    text-align: center;
+    padding: 7px 12px;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(200,164,78,0.75);
+    background: rgba(6,6,7,0.92);
+    border-bottom: 1px solid rgba(200,164,78,0.18);
+    pointer-events: none;
+  }
+  .page {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 68px 22px 96px;
+  }
+  @media (min-width: 900px) {
+    .page { padding: 80px 40px 120px; }
+  }
+
+  /* —— Mast —— */
+  .mast {
+    display: grid;
+    gap: 28px;
+    margin-bottom: 28px;
+  }
+  @media (min-width: 720px) {
+    .mast {
+      grid-template-columns: 1fr auto;
+      align-items: end;
+      gap: 40px;
+    }
+  }
+  .links {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 18px;
+  }
+  .links a {
+    color: var(--text-3);
+    text-decoration: none;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: lowercase;
+  }
+  .links a:hover,
+  .links a:focus-visible {
+    color: var(--text-1);
+    outline: none;
+  }
+  .name {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(40px, 7vw, 58px);
+    line-height: 1.05;
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+    color: var(--text-1);
+  }
+  .name em {
+    font-style: italic;
+    color: var(--gold);
+    font-weight: 300;
+  }
+  .lede {
+    margin: 0 0 8px;
+    max-width: 34em;
+    font-family: var(--serif);
+    font-size: clamp(16px, 2.2vw, 19px);
+    font-weight: 300;
+    line-height: 1.45;
+    color: var(--text-2);
+  }
+
+  /* Patent · Tate — quiet caption under role (lede), not a heading */
+  .proof-line {
+    margin: 0;
+    font-size: 10px;
+    font-weight: 300;
+    letter-spacing: 0.04em;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.36);
+  }
+  .proof-line a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 1px;
+    white-space: nowrap;
+    transition: color 0.2s ease, border-color 0.2s ease;
+  }
+  .proof-line a:hover,
+  .proof-line a:focus-visible {
+    color: var(--text-1);
+    border-bottom-color: rgba(255,255,255,0.22);
+    outline: none;
+  }
+  .proof-sep {
+    margin: 0 0.45em;
+    color: rgba(255,255,255,0.18);
+    user-select: none;
+  }
+
+  /* —— Machined ritual switch (not a pill) —— */
+  .ritual-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  @media (min-width: 720px) {
+    .ritual-bar { align-items: flex-end; }
+  }
+  .ritual-label {
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.18);
+  }
+  .mode-housing {
+    position: relative;
+    display: inline-flex;
+    align-items: stretch;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%),
+      var(--plate-face);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 2px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.05),
+      inset 0 -1px 0 rgba(0,0,0,0.55),
+      inset 0 0 0 1px rgba(0,0,0,0.35),
+      0 1px 0 rgba(255,255,255,0.03),
+      0 10px 28px rgba(0,0,0,0.35);
+    padding: 4px;
+    gap: 0;
+  }
+  .mode-housing::before,
+  .mode-housing::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #2a2a2c, #0e0e10 70%);
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,0.08),
+      0 1px 1px rgba(0,0,0,0.6);
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+  .mode-housing::before { left: -10px; }
+  .mode-housing::after { right: -10px; }
+
+  .mode-toggle {
+    display: inline-grid;
+    grid-template-columns: 1fr 1fr;
+    position: relative;
+    min-width: 196px;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.55);
+  }
+  .mode-toggle::before {
+    content: "";
+    position: absolute;
+    top: 2px; bottom: 2px;
+    left: 2px;
+    width: calc(50% - 2px);
+    background:
+      linear-gradient(180deg, rgba(200,164,78,0.22) 0%, rgba(200,164,78,0.08) 100%);
+    border: 1px solid rgba(200,164,78,0.42);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.12),
+      0 0 12px rgba(200,164,78,0.08);
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body[data-mode="field"] .mode-toggle::before {
+    transform: translateX(100%);
+  }
+  .mode-toggle button {
+    position: relative;
+    z-index: 1;
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--text-3);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 11px 16px 10px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .mode-toggle button .key {
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    color: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 1px 5px 0;
+    line-height: 1.4;
+    font-weight: 400;
+  }
+  .mode-toggle button[aria-pressed="true"] {
+    color: var(--gold);
+  }
+  .mode-toggle button[aria-pressed="true"] .key {
+    color: rgba(200,164,78,0.7);
+    border-color: rgba(200,164,78,0.35);
+  }
+  .mode-toggle button:focus-visible {
+    outline: 1px solid var(--gold);
+    outline-offset: 3px;
+    color: var(--text-1);
+  }
+  .mode-hint {
+    font-size: 8px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.14);
+  }
+
+  /* —— Shared stage —— */
+  .stage {
+    position: relative;
+    min-height: 420px;
+  }
+  .pane {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    transition: opacity 0.28s ease, visibility 0.28s ease;
+  }
+  body[data-mode="list"] .pane-list,
+  body[data-mode="field"] .pane-field {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    position: relative;
+  }
+
+  /* —— LIST: archival register —— */
+  .register {
+    position: relative;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.022) 0%, transparent 22%),
+      var(--plate-face);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 2px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.045),
+      inset 0 -1px 0 rgba(0,0,0,0.5),
+      inset 0 -36px 60px rgba(0,0,0,0.22),
+      0 1px 0 rgba(255,255,255,0.025),
+      0 24px 56px rgba(0,0,0,0.45);
+    overflow: hidden;
+  }
+  .reg-rail {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 9px 16px 8px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.008) 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    box-shadow:
+      inset 0 -1px 0 rgba(0,0,0,0.35),
+      0 1px 0 rgba(255,255,255,0.02);
+  }
+  .reg-id {
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-4);
+    font-variant-numeric: tabular-nums;
+  }
+  .reg-cols {
+    display: grid;
+    grid-template-columns: 48px 28px 1fr;
+    gap: 8px 14px;
+    padding: 7px 16px 6px;
+    border-bottom: 1px solid var(--line);
+    font-size: 8px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.18);
+    font-weight: 400;
+  }
+  .reg-cols .c-mk { text-align: center; }
+  .reg-body { padding: 0 8px 6px; }
+  @media (min-width: 600px) {
+    .reg-body { padding: 0 12px 8px; }
+  }
+
+  .rubric {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 12px 8px 2px;
+    font-size: 8px;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.18);
+    font-weight: 400;
+  }
+  .rubric::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--line);
+  }
+  .rubric-first { margin-top: 8px; }
+
+  .entry {
+    display: grid;
+    grid-template-columns: 48px 28px 1fr;
+    gap: 4px 14px;
+    align-items: baseline;
+    padding: 10px 8px 9px;
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .entry::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; top: 0;
+    height: 1px;
+    background: transparent;
+    transition: background 0.15s ease;
+  }
+  .entry:hover,
+  .entry:focus-visible {
+    background: rgba(255,255,255,0.02);
+    border-bottom-color: var(--line-hi);
+    outline: none;
+  }
+  .entry:focus-visible {
+    box-shadow: inset 0 0 0 1px rgba(200,164,78,0.32);
+  }
+  .entry:hover::before,
+  .entry:focus-visible::before {
+    background: rgba(200,164,78,0.12);
+  }
+
+  /* Research weight — heavier without Ledger Arabic numbers */
+  .entry-primary {
+    padding: 14px 8px 13px;
+  }
+  .entry-num {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--text-3);
+    font-variant-numeric: tabular-nums;
+    font-weight: 400;
+    transition: color 0.15s ease;
+  }
+  .entry-primary .entry-num {
+    color: var(--gold-dim);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+  }
+  .entry:hover .entry-num,
+  .entry:focus-visible .entry-num { color: var(--gold); }
+
+  .entry-glyph {
+    font-family: var(--serif);
+    font-size: 14px;
+    color: var(--text-4);
+    text-align: center;
+    line-height: 1;
+    transition: color 0.15s ease;
+  }
+  .entry-primary .entry-glyph {
+    font-size: 18px;
+    color: rgba(200,164,78,0.55);
+  }
+  .entry:hover .entry-glyph,
+  .entry:focus-visible .entry-glyph { color: var(--gold); }
+
+  .entry-main { min-width: 0; }
+  .entry-title {
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.74);
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+    display: block;
+  }
+  .entry-primary .entry-title {
+    font-size: 22px;
+    color: var(--text-1);
+    letter-spacing: 0.005em;
+  }
+  .entry-desc {
+    margin-top: 3px;
+    font-size: 10px;
+    color: var(--text-3);
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+    display: block;
+  }
+  .entry-primary .entry-desc {
+    font-size: 11px;
+    color: var(--text-2);
+  }
+
+  @media (max-width: 560px) {
+    .reg-cols {
+      grid-template-columns: 36px 22px 1fr;
+      padding: 8px 12px 7px;
+    }
+    .entry {
+      grid-template-columns: 36px 22px 1fr;
+      gap: 4px 10px;
+      padding: 12px 6px 11px;
+    }
+    .entry-primary { padding: 15px 6px 14px; }
+    .entry-primary .entry-title { font-size: 20px; }
+    .entry-title { font-size: 16px; }
+    .reg-rail { padding-left: 14px; padding-right: 14px; }
+    .rubric { margin-left: 6px; margin-right: 6px; }
+    .mode-housing::before,
+    .mode-housing::after { display: none; }
+  }
+
+  /* —— FIELD: constellation craft —— */
+  .field {
+    position: relative;
+    min-height: 540px;
+    background:
+      radial-gradient(ellipse 42% 36% at 28% 30%, rgba(200,164,78,0.07), transparent 68%),
+      radial-gradient(ellipse 36% 32% at 52% 24%, rgba(200,164,78,0.05), transparent 65%),
+      radial-gradient(ellipse 70% 55% at 50% 48%, rgba(255,255,255,0.015), transparent 70%),
+      linear-gradient(rgba(255,255,255,0.028) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.028) 1px, transparent 1px);
+    background-size: auto, auto, auto, 40px 40px, 40px 40px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 2px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.04),
+      inset 0 -1px 0 rgba(0,0,0,0.45),
+      0 24px 56px rgba(0,0,0,0.4);
+    overflow: hidden;
+  }
+  .field-rail {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.18);
+  }
+  .field-rail span {
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--text-4);
+  }
+  .field-sky {
+    position: relative;
+    min-height: 500px;
+  }
+  .field-sky::before {
+    content: "";
+    position: absolute;
+    inset: 14px;
+    border: 1px solid rgba(255,255,255,0.035);
+    pointer-events: none;
+  }
+
+  /* Constellation ligaments — DJ ↔ Z major axis, faint rays to quiet */
+  .constellation {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .constellation line {
+    stroke: rgba(200,164,78,0.14);
+    stroke-width: 1;
+  }
+  .constellation .ray {
+    stroke: rgba(255,255,255,0.05);
+    stroke-width: 1;
+    stroke-dasharray: 2 6;
+  }
+  .constellation .axis {
+    stroke: rgba(200,164,78,0.22);
+    stroke-width: 1.25;
+  }
+
+  .node {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    text-decoration: none;
+    color: inherit;
+    transform: translate(-50%, -50%);
+    transition: transform 0.2s ease;
+    max-width: 150px;
+    text-align: center;
+    z-index: 1;
+  }
+  .node:hover,
+  .node:focus-visible {
+    transform: translate(-50%, -50%) scale(1.05);
+    outline: none;
+    z-index: 4;
+  }
+
+  /* Quiet satellites — small dim marks */
+  .node-mark {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(6,6,7,0.88);
+    font-family: var(--serif);
+    font-size: 13px;
+    color: var(--text-3);
+    border-radius: 50%;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+    transition:
+      border-color 0.2s ease,
+      color 0.2s ease,
+      background 0.2s ease,
+      box-shadow 0.2s ease,
+      transform 0.2s ease;
+  }
+  .node-quiet .node-label {
+    font-size: 13px;
+    color: rgba(255,255,255,0.42);
+  }
+  .node-quiet .node-tag { display: none; }
+
+  /* Major stars — DJ / Zarankiewicz */
+  .node-primary .node-mark {
+    width: 58px;
+    height: 58px;
+    font-size: 24px;
+    border-radius: 50%;
+    border: 1px solid rgba(200,164,78,0.55);
+    color: var(--gold);
+    background:
+      radial-gradient(circle at 40% 35%, rgba(200,164,78,0.18), rgba(6,6,7,0.92) 70%);
+    box-shadow:
+      0 0 0 6px rgba(200,164,78,0.06),
+      0 0 28px rgba(200,164,78,0.12),
+      inset 0 1px 0 rgba(255,255,255,0.08);
+  }
+  .node-primary .node-mark::after {
+    content: "";
+    position: absolute;
+    width: 74px;
+    height: 74px;
+    border: 1px dashed rgba(200,164,78,0.2);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .node-primary {
+    max-width: 180px;
+  }
+  .node-primary .node-mark {
+    position: relative;
+  }
+  .node-mark-z { font-style: italic; font-weight: 400; }
+
+  .node:hover .node-mark,
+  .node:focus-visible .node-mark {
+    border-color: var(--gold);
+    color: #060607;
+    background: var(--gold);
+    box-shadow: 0 0 0 8px rgba(200,164,78,0.1), 0 0 32px rgba(200,164,78,0.22);
+  }
+  .node-primary:hover .node-mark::after,
+  .node-primary:focus-visible .node-mark::after {
+    border-color: rgba(200,164,78,0.45);
+  }
+
+  .node-label {
+    font-family: var(--serif);
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--text-2);
+    line-height: 1.25;
+    transition: color 0.2s ease;
+  }
+  .node-primary .node-label {
+    font-size: 18px;
+    color: var(--text-1);
+    letter-spacing: 0.01em;
+  }
+  .node:hover .node-label,
+  .node:focus-visible .node-label { color: var(--text-1); }
+  .node-tag {
+    font-size: 8px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(200,164,78,0.45);
+  }
+
+  /* Positions — intentional constellation */
+  .n-dj   { left: 26%; top: 30%; }
+  .n-z    { left: 58%; top: 24%; }
+  .n-sn   { left: 82%; top: 36%; }
+  .n-gg   { left: 14%; top: 62%; }
+  .n-fr   { left: 40%; top: 58%; }
+  .n-ww   { left: 72%; top: 62%; }
+  .n-tlp  { left: 30%; top: 84%; }
+  .n-pr   { left: 64%; top: 82%; }
+
+  @media (max-width: 640px) {
+    .field { min-height: 620px; background-size: auto, auto, auto, 32px 32px, 32px 32px; }
+    .field-sky { min-height: 580px; }
+    .node { max-width: 100px; }
+    .node-label { font-size: 12px; }
+    .node-primary .node-label { font-size: 14px; }
+    .node-mark { width: 24px; height: 24px; font-size: 12px; }
+    .node-primary .node-mark { width: 48px; height: 48px; font-size: 20px; }
+    .node-primary .node-mark::after { width: 60px; height: 60px; }
+    .node-quiet .node-label { font-size: 11px; }
+  }
+
+  /* —— Bio last —— */
+  .bio {
+    margin: 28px 0 0;
+    max-width: 40em;
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 300;
+    line-height: 1.55;
+    color: rgba(255,255,255,0.68);
+  }
+</style>
+</head>
+<body data-mode="list">
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="preview-flag" aria-hidden="true">preview · the index ritual · not live</div>
+
+<main class="page" id="main">
+  <header class="mast">
+    <div>
+      <div class="links">
+        <a href="mailto:edwinrosero@gmail.com">email</a>
+        <a href="https://edwinrosero.substack.com/" target="_blank" rel="noopener">substack</a>
+      </div>
+      <h1 class="name">Edwin <em>Rosero</em></h1>
+      <p class="lede">An index that can be read two ways — as sequence, or as field.</p>
+      <p class="proof-line">
+        <a href="https://patents.google.com/patent/US11803885B2/en" target="_blank" rel="noopener">US 11,803,885</a><span class="proof-sep" aria-hidden="true">·</span><a href="https://www.tate.org.uk/whats-on/tate-britain/bp-loud-tate-2014-code" target="_blank" rel="noopener">Tate 2014</a>
+      </p>
+    </div>
+    <div class="ritual-bar">
+      <span class="ritual-label" id="mode-label">Reading</span>
+      <div class="mode-housing">
+        <div class="mode-toggle" role="group" aria-labelledby="mode-label">
+          <button type="button" id="btn-list" aria-pressed="true">List <span class="key" aria-hidden="true">1</span></button>
+          <button type="button" id="btn-field" aria-pressed="false">Field <span class="key" aria-hidden="true">2</span></button>
+        </div>
+      </div>
+      <span class="mode-hint">Keys 1 / 2</span>
+    </div>
+  </header>
+
+  <div class="stage">
+    <!-- LIST -->
+    <section class="pane pane-list" aria-label="Index as list">
+      <div class="register">
+        <div class="reg-rail">
+          <span class="reg-id">Index · ER-01</span>
+          <span class="reg-id">List reading</span>
+        </div>
+        <div class="reg-cols" aria-hidden="true">
+          <span class="c-no">Rom.</span>
+          <span class="c-mk">·</span>
+          <span class="c-en">Entry</span>
+        </div>
+        <div class="reg-body">
+          <div class="rubric rubric-first">Research</div>
+          <a class="entry entry-primary" href="https://edwinrosero.com/research/">
+            <span class="entry-num">I</span>
+            <span class="entry-glyph" aria-hidden="true">∂</span>
+            <span class="entry-main">
+              <span class="entry-title">The Discrete Jacobian</span>
+              <span class="entry-desc">Ancestral injectivity, causal history, and graph rewriting</span>
+            </span>
+          </a>
+          <a class="entry entry-primary" href="https://doi.org/10.5281/zenodo.21814869" target="_blank" rel="noopener">
+            <span class="entry-num">II</span>
+            <span class="entry-glyph" aria-hidden="true">z</span>
+            <span class="entry-main">
+              <span class="entry-title">Zarankiewicz</span>
+              <span class="entry-desc">Exact terms for OEIS A006615 and A006625</span>
+            </span>
+          </a>
+
+          <div class="rubric">Creations</div>
+          <a class="entry" href="https://snares.ai" target="_blank" rel="noopener">
+            <span class="entry-num">III</span>
+            <span class="entry-glyph" aria-hidden="true">◎</span>
+            <span class="entry-main">
+              <span class="entry-title">SNARES</span>
+              <span class="entry-desc">AI-powered sound reactive visualizer</span>
+            </span>
+          </a>
+          <a class="entry" href="https://gravitygolf.xyz" target="_blank" rel="noopener">
+            <span class="entry-num">IV</span>
+            <span class="entry-glyph" aria-hidden="true">●</span>
+            <span class="entry-main">
+              <span class="entry-title">Gravity Golf</span>
+              <span class="entry-desc">Physics-based golf game</span>
+            </span>
+          </a>
+          <a class="entry" href="https://edwinrosero.com/fringe/">
+            <span class="entry-num">V</span>
+            <span class="entry-glyph" aria-hidden="true">≈</span>
+            <span class="entry-main">
+              <span class="entry-title">Fringe</span>
+              <span class="entry-desc">Photonic synthesizer · web or plugin</span>
+            </span>
+          </a>
+          <a class="entry" href="https://www.instagram.com/walkthroughwonder/" target="_blank" rel="noopener">
+            <span class="entry-num">VI</span>
+            <span class="entry-glyph" aria-hidden="true">⬡</span>
+            <span class="entry-main">
+              <span class="entry-title">Walkthroughwonder</span>
+              <span class="entry-desc">Creative technology &amp; visual experiments</span>
+            </span>
+          </a>
+          <a class="entry" href="https://edwinrosero.com/research/app">
+            <span class="entry-num">VII</span>
+            <span class="entry-glyph" aria-hidden="true">◇</span>
+            <span class="entry-main">
+              <span class="entry-title">Topological Light Propagation</span>
+              <span class="entry-desc">Companion interactive multiway-system explorer</span>
+            </span>
+          </a>
+          <a class="entry" href="https://annaseaman.medium.com/a-bitcoin-key-turned-money-into-poetry-55c1ba9fa408" target="_blank" rel="noopener">
+            <span class="entry-num">VIII</span>
+            <span class="entry-glyph" aria-hidden="true">✦</span>
+            <span class="entry-main">
+              <span class="entry-title">Press</span>
+              <span class="entry-desc">A Bitcoin Key Turned Money Into Poetry</span>
+            </span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- FIELD -->
+    <section class="pane pane-field" aria-label="Index as field" hidden>
+      <div class="field">
+        <div class="field-rail">
+          <span>Index · ER-01</span>
+          <span>Field reading</span>
+        </div>
+        <div class="field-sky" role="list">
+          <svg class="constellation" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <!-- Major axis DJ — Z -->
+            <line class="axis" x1="26" y1="30" x2="58" y2="24" />
+            <!-- Quiet rays from the axis -->
+            <line class="ray" x1="26" y1="30" x2="14" y2="62" />
+            <line class="ray" x1="26" y1="30" x2="40" y2="58" />
+            <line class="ray" x1="58" y1="24" x2="82" y2="36" />
+            <line class="ray" x1="58" y1="24" x2="72" y2="62" />
+            <line class="ray" x1="40" y1="58" x2="30" y2="84" />
+            <line class="ray" x1="72" y1="62" x2="64" y2="82" />
+          </svg>
+
+          <a class="node node-primary n-dj" role="listitem" href="https://edwinrosero.com/research/">
+            <span class="node-mark" aria-hidden="true">∂</span>
+            <span class="node-label">The Discrete Jacobian</span>
+            <span class="node-tag">research</span>
+          </a>
+          <a class="node node-primary n-z" role="listitem" href="https://doi.org/10.5281/zenodo.21814869" target="_blank" rel="noopener">
+            <span class="node-mark node-mark-z" aria-hidden="true">z</span>
+            <span class="node-label">Zarankiewicz</span>
+            <span class="node-tag">research</span>
+          </a>
+          <a class="node node-quiet n-sn" role="listitem" href="https://snares.ai" target="_blank" rel="noopener">
+            <span class="node-mark" aria-hidden="true">◎</span>
+            <span class="node-label">SNARES</span>
+          </a>
+          <a class="node node-quiet n-gg" role="listitem" href="https://gravitygolf.xyz" target="_blank" rel="noopener">
+            <span class="node-mark" aria-hidden="true">●</span>
+            <span class="node-label">Gravity Golf</span>
+          </a>
+          <a class="node node-quiet n-fr" role="listitem" href="https://edwinrosero.com/fringe/">
+            <span class="node-mark" aria-hidden="true">≈</span>
+            <span class="node-label">Fringe</span>
+          </a>
+          <a class="node node-quiet n-ww" role="listitem" href="https://www.instagram.com/walkthroughwonder/" target="_blank" rel="noopener">
+            <span class="node-mark" aria-hidden="true">⬡</span>
+            <span class="node-label">Walkthroughwonder</span>
+          </a>
+          <a class="node node-quiet n-tlp" role="listitem" href="https://edwinrosero.com/research/app">
+            <span class="node-mark" aria-hidden="true">◇</span>
+            <span class="node-label">Topological Light</span>
+          </a>
+          <a class="node node-quiet n-pr" role="listitem" href="https://annaseaman.medium.com/a-bitcoin-key-turned-money-into-poetry-55c1ba9fa408" target="_blank" rel="noopener">
+            <span class="node-mark" aria-hidden="true">✦</span>
+            <span class="node-label">Press</span>
+          </a>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <p class="bio">
+    I'm drawn to the moment where intent slips, and something else appears:
+    patterns that listen back, structures that react, atmospheres that feel
+    almost alive. If there's a theme, it's emergence.
+  </p>
+</main>
+
+<script>
+(function () {
+  var body = document.body;
+  var listBtn = document.getElementById('btn-list');
+  var fieldBtn = document.getElementById('btn-field');
+  var listPane = document.querySelector('.pane-list');
+  var fieldPane = document.querySelector('.pane-field');
+
+  function setMode(mode) {
+    body.setAttribute('data-mode', mode);
+    var isList = mode === 'list';
+    listBtn.setAttribute('aria-pressed', isList ? 'true' : 'false');
+    fieldBtn.setAttribute('aria-pressed', isList ? 'false' : 'true');
+    if (listPane) listPane.hidden = !isList;
+    if (fieldPane) fieldPane.hidden = isList;
+    try { localStorage.setItem('index-ritual-mode', mode); } catch (e) {}
+  }
+
+  listBtn.addEventListener('click', function () { setMode('list'); });
+  fieldBtn.addEventListener('click', function () { setMode('field'); });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+    if (e.key === '1') setMode('list');
+    if (e.key === '2') setMode('field');
+  });
+
+  try {
+    var saved = localStorage.getItem('index-ritual-mode');
+    if (saved === 'field' || saved === 'list') setMode(saved);
+    else setMode('list');
+  } catch (e) {
+    setMode('list');
+  }
+})();
+</script>
+</body>
+</html>

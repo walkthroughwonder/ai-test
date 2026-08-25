@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>preview · Zarankiewicz · Edwin Rosero</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Local preview only — Zarankiewicz / OEIS exact terms. Not live.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #060607;
+    --text-1: rgba(255,255,255,0.88);
+    --text-2: rgba(255,255,255,0.44);
+    --text-3: rgba(255,255,255,0.16);
+    --accent: #c8a44e;
+    --accent-dim: rgba(200,164,78,0.4);
+    --serif: 'Cormorant Garamond', Georgia, serif;
+    --mono: 'IBM Plex Mono', 'Courier New', monospace;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-1);
+    font-family: var(--mono);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background: rgba(200,164,78,0.2);
+    color: #fff;
+  }
+
+  .preview-flag {
+    position: fixed;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
+    font-family: var(--mono);
+    font-size: 0.5rem;
+    font-weight: 400;
+    letter-spacing: 0.18em;
+    text-transform: lowercase;
+    color: rgba(255,255,255,0.38);
+    background: rgba(6,6,7,0.85);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 6px 12px;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .skip-link {
+    position: fixed;
+    left: 16px;
+    top: 16px;
+    z-index: 100;
+    padding: 8px 12px;
+    background: var(--bg);
+    color: var(--text-1);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-decoration: none;
+    border: 1px solid var(--accent);
+    transform: translateY(-200%);
+  }
+  .skip-link:focus,
+  .skip-link:focus-visible {
+    transform: translateY(0);
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  .page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 64px 40px 72px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .content {
+    max-width: 560px;
+    width: 100%;
+  }
+
+  .back {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.55rem;
+    font-weight: 400;
+    color: var(--text-2);
+    text-decoration: none;
+    letter-spacing: 0.12em;
+    text-transform: lowercase;
+    margin-bottom: 28px;
+    transition: color 0.3s ease;
+  }
+  .back:hover { color: var(--text-1); }
+  .back:focus-visible {
+    outline: 1px solid var(--accent-dim);
+    outline-offset: 4px;
+  }
+
+  .kicker {
+    font-family: var(--mono);
+    font-size: 0.5rem;
+    font-weight: 400;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    margin-bottom: 14px;
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-size: clamp(2.2rem, 5vw, 3.2rem);
+    font-weight: 300;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: var(--text-1);
+    margin-bottom: 18px;
+  }
+
+  .lede {
+    font-family: var(--serif);
+    font-size: 1.18rem;
+    font-weight: 300;
+    line-height: 1.65;
+    color: rgba(255,255,255,0.72);
+    margin-bottom: 36px;
+    max-width: 34em;
+  }
+  .lede em {
+    font-style: italic;
+    color: rgba(255,255,255,0.88);
+  }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 0.44rem;
+    font-weight: 500;
+    letter-spacing: 0.5em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    margin-bottom: 10px;
+  }
+
+  /* Specimen tray — open rows, not a loud card */
+  .evidence {
+    border-top: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 32px;
+  }
+
+  .seq {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 20px;
+    row-gap: 6px;
+    align-items: baseline;
+    padding: 16px 0 15px;
+    text-decoration: none;
+    color: inherit;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    transition: border-color 0.3s ease, background 0.3s ease;
+  }
+  .seq:hover {
+    border-bottom-color: rgba(200,164,78,0.18);
+  }
+  .seq:focus-visible {
+    outline: 1px solid var(--accent-dim);
+    outline-offset: 4px;
+  }
+
+  .seq-id {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--text-1);
+    transition: color 0.3s ease;
+  }
+  .seq:hover .seq-id { color: #fff; }
+
+  .seq-open {
+    font-family: var(--mono);
+    font-size: 0.5rem;
+    font-weight: 400;
+    letter-spacing: 0.14em;
+    text-transform: lowercase;
+    color: var(--text-3);
+    transition: color 0.3s ease;
+  }
+  .seq:hover .seq-open { color: var(--accent-dim); }
+
+  .seq-terms {
+    grid-column: 1 / -1;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    color: rgba(255,255,255,0.78);
+    line-height: 1.55;
+  }
+  .seq-terms .eq {
+    color: rgba(255,255,255,0.28);
+    margin: 0 0.15em;
+  }
+  .seq-terms .sep {
+    color: rgba(255,255,255,0.2);
+    margin: 0 0.55em;
+  }
+
+  .seq-credit {
+    grid-column: 1 / -1;
+    font-family: var(--mono);
+    font-size: 0.55rem;
+    font-weight: 300;
+    line-height: 1.55;
+    color: var(--text-2);
+    letter-spacing: 0.02em;
+  }
+
+  .zenodo {
+    display: block;
+    padding: 18px 0 4px;
+    margin-bottom: 36px;
+    text-decoration: none;
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+  .zenodo-label {
+    font-family: var(--mono);
+    font-size: 0.44rem;
+    font-weight: 500;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    margin-bottom: 10px;
+  }
+  .zenodo-title {
+    font-family: var(--serif);
+    font-size: 1.05rem;
+    font-weight: 300;
+    line-height: 1.55;
+    color: rgba(255,255,255,0.78);
+    margin-bottom: 10px;
+    transition: color 0.3s ease;
+  }
+  .zenodo:hover .zenodo-title { color: #fff; }
+  .zenodo-doi {
+    font-family: var(--mono);
+    font-size: 0.55rem;
+    font-weight: 300;
+    color: var(--accent-dim);
+    letter-spacing: 0.04em;
+    transition: color 0.3s ease;
+  }
+  .zenodo:hover .zenodo-doi { color: var(--accent); }
+  .zenodo:focus-visible {
+    outline: 1px solid var(--accent-dim);
+    outline-offset: 4px;
+  }
+
+  .scope {
+    font-family: var(--mono);
+    font-size: 0.55rem;
+    font-weight: 300;
+    line-height: 1.75;
+    color: rgba(255,255,255,0.36);
+    letter-spacing: 0.02em;
+    max-width: 480px;
+  }
+
+  @media (max-width: 600px) {
+    .preview-flag {
+      font-size: 0.44rem;
+      letter-spacing: 0.12em;
+      top: 10px;
+      padding: 5px 10px;
+    }
+    .page { padding: 56px 24px 64px; }
+    h1 { font-size: 2rem; }
+    .lede { font-size: 1.05rem; color: rgba(255,255,255,0.74); margin-bottom: 32px; }
+    .back { margin-bottom: 24px; }
+    .seq { padding: 14px 0 13px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0s !important;
+      transition-duration: 0.01ms !important;
+      transition-delay: 0s !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="preview-flag" aria-hidden="true">preview · zarankiewicz · not live</div>
+
+<div class="page">
+  <div class="content" id="main">
+    <a class="back" id="home-link" href="../preview/">← home</a>
+    <script>
+    (function () {
+      var a = document.getElementById('home-link');
+      if (!a) return;
+      // :4181 docroot is zarankiewicz/ only — ../preview/ escapes → 404.
+      // Chief ED handoff home is :4180 (preview/). Monorepo :8765 keeps ../preview/.
+      if (location.port === '4181') {
+        a.setAttribute('href', 'http://127.0.0.1:4180/');
+      }
+    })();
+    </script>
+
+    <div class="kicker">OEIS · exact values</div>
+    <h1>Zarankiewicz</h1>
+
+    <p class="lede">
+      How dense can an <em>m</em>×<em>n</em> bipartite graph be before it must contain
+      <em>K</em><sub style="font-size:0.72em;font-style:normal;font-family:var(--mono);letter-spacing:0.02em">3,4</sub>?
+      Exact values of <em>z(m,n;3,4)</em> — SAT witnesses, DRAT-certified.
+    </p>
+
+    <div class="section-label">Evidence</div>
+    <div class="evidence">
+      <a class="seq" href="https://oeis.org/A006615" target="_blank" rel="noopener">
+        <div class="seq-id">A006615</div>
+        <div class="seq-open">oeis ↗</div>
+        <div class="seq-terms">a(12)<span class="eq">=</span>91</div>
+        <div class="seq-credit">Aug&nbsp;7&nbsp;2026 · Edwin David Rosero</div>
+      </a>
+      <a class="seq" href="https://oeis.org/A006625" target="_blank" rel="noopener">
+        <div class="seq-id">A006625</div>
+        <div class="seq-open">oeis ↗</div>
+        <div class="seq-terms">a(11)<span class="eq">=</span>90<span class="sep">·</span>a(12)<span class="eq">=</span>103</div>
+        <div class="seq-credit">a(11) Aug&nbsp;7&nbsp;2026 · a(12) Aug&nbsp;16&nbsp;2026 — Edwin David Rosero</div>
+      </a>
+    </div>
+
+    <a class="zenodo" href="https://doi.org/10.5281/zenodo.21814869" target="_blank" rel="noopener">
+      <div class="zenodo-label">Zenodo</div>
+      <div class="zenodo-title">Zarankiewicz numbers z(m,n;3,4): SAT witnesses and DRAT-certified exact values (OEIS A006615 and A006625)</div>
+      <div class="zenodo-doi">doi.org/10.5281/zenodo.21814869</div>
+    </a>
+
+    <p class="scope">
+      Terms contributed to existing sequences authored by N.&nbsp;J.&nbsp;A.&nbsp;Sloane.
+      Recorded on OEIS and archived on Zenodo; not a peer-reviewed journal claim beyond those sources.
+    </p>
+  </div>
+</div>
+
+</body>
+</html>

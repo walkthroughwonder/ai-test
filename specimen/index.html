@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>preview · the specimen · Edwin Rosero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #060607;
+    --tray: #0a0a0b;
+    --tray-face: #0c0c0d;
+    --tray-edge: rgba(255,255,255,0.09);
+    --well: #070708;
+    --text-1: rgba(255,255,255,0.92);
+    --text-2: rgba(255,255,255,0.55);
+    --text-3: rgba(255,255,255,0.36);
+    --text-4: rgba(255,255,255,0.22);
+    --gold: #c8a44e;
+    --gold-dim: rgba(200,164,78,0.32);
+    --gold-hair: rgba(200,164,78,0.18);
+    --serif: 'Cormorant Garamond', Georgia, serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text-1);
+    font-family: var(--mono);
+    font-weight: 300;
+    font-size: 13px;
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0;
+    background: var(--gold);
+    color: #060607;
+    padding: 8px 14px;
+    z-index: 100;
+    font-size: 12px;
+  }
+  .skip-link:focus { left: 12px; top: 12px; }
+  .preview-flag {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    text-align: center;
+    padding: 7px 12px;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(200,164,78,0.75);
+    background: rgba(6,6,7,0.92);
+    border-bottom: 1px solid rgba(200,164,78,0.18);
+    pointer-events: none;
+  }
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 68px 20px 88px;
+  }
+  @media (min-width: 900px) {
+    .page { padding: 80px 32px 110px; }
+  }
+
+  .links {
+    display: flex;
+    gap: 18px;
+    margin-bottom: 22px;
+  }
+  .links a {
+    color: var(--text-3);
+    text-decoration: none;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: lowercase;
+  }
+  .links a:hover,
+  .links a:focus-visible {
+    color: var(--text-1);
+    outline: none;
+  }
+
+  .mast { margin-bottom: 28px; }
+  .name {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(40px, 7vw, 58px);
+    line-height: 1.05;
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+  .name em {
+    font-style: italic;
+    color: var(--gold);
+    font-weight: 300;
+  }
+  .lede {
+    margin: 0;
+    max-width: 34em;
+    font-family: var(--serif);
+    font-size: clamp(16px, 2.2vw, 19px);
+    font-weight: 300;
+    line-height: 1.45;
+    color: var(--text-2);
+  }
+
+  /* —— Lab tray: machined plate —— */
+  .tray {
+    position: relative;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.025) 0%, transparent 28%),
+      var(--tray-face);
+    border: 1px solid var(--tray-edge);
+    border-radius: 3px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.05),
+      inset 0 -1px 0 rgba(0,0,0,0.55),
+      inset 0 -40px 70px rgba(0,0,0,0.28),
+      0 1px 0 rgba(255,255,255,0.03),
+      0 28px 64px rgba(0,0,0,0.5);
+    padding: 0;
+    overflow: hidden;
+  }
+
+  /* Raised outer rail */
+  .tray-rail {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 11px 16px 10px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    box-shadow: inset 0 -1px 0 rgba(0,0,0,0.35);
+  }
+  .tray-id {
+    font-size: 9px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--text-4);
+    font-variant-numeric: tabular-nums;
+  }
+  .tray-screw {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #2a2a2c, #0e0e10 70%);
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,0.08),
+      0 1px 1px rgba(0,0,0,0.6);
+    flex-shrink: 0;
+  }
+  .tray-rail-mid {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    justify-content: space-between;
+  }
+
+  .tray-bed {
+    padding: 16px 14px 14px;
+  }
+  @media (min-width: 700px) {
+    .tray-bed { padding: 18px 16px 16px; }
+  }
+
+  .tray-rubric {
+    font-size: 8px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.18);
+    margin: 0 4px 10px;
+    font-weight: 400;
+  }
+  .tray-rubric + .wells-quiet { margin-top: 2px; }
+  .rubric-gap { margin-top: 16px; }
+
+  /* Primary wells */
+  .wells-primary {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  @media (min-width: 640px) {
+    .wells-primary {
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+  }
+
+  /* Secondary — six small wells; scroll honestly if needed */
+  .wells-quiet-wrap {
+    position: relative;
+  }
+  .wells-quiet {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  @media (min-width: 700px) {
+    .wells-quiet {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 9px;
+    }
+  }
+  @media (max-width: 699px) and (min-width: 481px) {
+    .wells-quiet {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      max-height: 188px;
+      overflow-y: auto;
+      padding-right: 2px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.12) transparent;
+    }
+  }
+
+  .well {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+    background: var(--well);
+    border: 1px dashed rgba(255,255,255,0.16);
+    border-radius: 2px;
+    padding: 14px 12px 12px;
+    min-height: 108px;
+    position: relative;
+    box-shadow:
+      inset 0 3px 8px rgba(0,0,0,0.55),
+      inset 0 -1px 0 rgba(255,255,255,0.025);
+    transition:
+      border-color 0.18s ease,
+      border-style 0.18s ease,
+      box-shadow 0.18s ease,
+      transform 0.18s ease,
+      background 0.18s ease;
+  }
+  .well:hover,
+  .well:focus-visible {
+    border-style: solid;
+    border-color: rgba(200,164,78,0.38);
+    background: #09090a;
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 2px 5px rgba(0,0,0,0.38),
+      0 10px 28px rgba(0,0,0,0.38),
+      0 0 0 1px rgba(200,164,78,0.1);
+    outline: none;
+  }
+
+  .well-primary {
+    min-height: 158px;
+    padding: 20px 18px 18px;
+    border-color: rgba(200,164,78,0.28);
+    border-style: dashed;
+  }
+  .well-primary:hover,
+  .well-primary:focus-visible {
+    border-style: solid;
+    border-color: rgba(200,164,78,0.5);
+    background: #0a0a0b;
+  }
+
+  /* Glyph well — small stamped recess */
+  .well-mark {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 26px;
+    height: 26px;
+    display: grid;
+    place-items: center;
+    font-family: var(--serif);
+    font-size: 15px;
+    color: var(--text-4);
+    border: 1px solid rgba(255,255,255,0.09);
+    background: rgba(0,0,0,0.35);
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.6);
+    transition:
+      color 0.18s ease,
+      border-color 0.18s ease,
+      background 0.18s ease,
+      box-shadow 0.18s ease;
+  }
+  .well-primary .well-mark {
+    width: 36px;
+    height: 36px;
+    font-size: 19px;
+    top: 16px;
+    right: 16px;
+    border-color: rgba(200,164,78,0.34);
+    color: var(--gold);
+    background: rgba(200,164,78,0.04);
+  }
+  .well:hover .well-mark,
+  .well:focus-visible .well-mark {
+    color: #060607;
+    background: var(--gold);
+    border-color: var(--gold);
+    box-shadow: 0 0 12px rgba(200,164,78,0.28);
+  }
+
+  /* Hairline catalog labels */
+  .well-cat {
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.2);
+    margin-bottom: 9px;
+    font-variant-numeric: tabular-nums;
+    font-weight: 400;
+  }
+  .well-primary .well-cat {
+    color: rgba(200,164,78,0.42);
+    letter-spacing: 0.26em;
+  }
+  .well:hover .well-cat,
+  .well:focus-visible .well-cat {
+    color: var(--gold-dim);
+  }
+
+  .well-title {
+    font-family: var(--serif);
+    font-weight: 400;
+    font-size: 17px;
+    line-height: 1.2;
+    color: rgba(255,255,255,0.78);
+    margin: 0 0 6px;
+    padding-right: 34px;
+    letter-spacing: 0.01em;
+  }
+  .well-primary .well-title {
+    font-size: 23px;
+    color: var(--text-1);
+    margin-bottom: 8px;
+    padding-right: 44px;
+  }
+  .well-caption {
+    margin: 0;
+    font-size: 10px;
+    line-height: 1.4;
+    color: var(--text-3);
+    max-width: 26em;
+    letter-spacing: 0.01em;
+  }
+  .well-primary .well-caption {
+    font-size: 12px;
+    color: var(--text-2);
+    max-width: 28em;
+  }
+
+  /* Enter cue — primary only */
+  .well-enter {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 14px;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: transparent;
+    transition: color 0.18s ease;
+  }
+  .well-enter::after {
+    content: "";
+    width: 14px;
+    height: 1px;
+    background: currentColor;
+    transition: width 0.18s ease, background 0.18s ease;
+  }
+  .well-primary:hover .well-enter,
+  .well-primary:focus-visible .well-enter {
+    color: var(--gold);
+  }
+  .well-primary:hover .well-enter::after,
+  .well-primary:focus-visible .well-enter::after {
+    width: 22px;
+  }
+
+  .well-pin {
+    position: absolute;
+    left: 50%;
+    bottom: 7px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+    box-shadow: inset 0 1px 1px rgba(0,0,0,0.5);
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+  .well-primary .well-pin {
+    background: rgba(200,164,78,0.22);
+  }
+
+  /* Tray edge etch — proof, subordinate */
+  .tray-edge {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 16px 10px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+    background: rgba(0,0,0,0.22);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+  }
+  .tray-edge .tray-etch {
+    flex: 1;
+    justify-content: center;
+  }
+  .tray-etch {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.28);
+  }
+  .tray-etch a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    padding-bottom: 1px;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .tray-etch a:hover,
+  .tray-etch a:focus-visible {
+    color: rgba(255,255,255,0.7);
+    border-bottom-color: rgba(255,255,255,0.2);
+    outline: none;
+  }
+  .tray-etch .sep {
+    color: rgba(255,255,255,0.14);
+    margin: 0 0.65em;
+  }
+
+  .bio {
+    margin: 28px 0 0;
+    max-width: 40em;
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 300;
+    line-height: 1.55;
+    color: rgba(255,255,255,0.68);
+  }
+
+  @media (max-width: 480px) {
+    .wells-quiet { grid-template-columns: 1fr; max-height: none; }
+    .well { min-height: 0; }
+    .well-primary { min-height: 0; }
+    .tray-rail { padding: 10px 12px; }
+    .tray-bed { padding: 14px 12px 12px; }
+    .tray-edge {
+      padding: 10px 12px 12px;
+    }
+    .well-enter { margin-top: 12px; }
+  }
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="preview-flag" aria-hidden="true">preview · the specimen · not live</div>
+
+<main class="page" id="main">
+  <div class="links">
+    <a href="mailto:edwinrosero@gmail.com">email</a>
+    <a href="https://edwinrosero.substack.com/" target="_blank" rel="noopener">substack</a>
+  </div>
+
+  <header class="mast">
+    <h1 class="name">Edwin <em>Rosero</em></h1>
+    <p class="lede">Work laid out as specimens — research in the deep wells, creations in the tray below.</p>
+  </header>
+
+  <section class="tray" aria-label="Specimen tray">
+    <div class="tray-rail">
+      <span class="tray-screw" aria-hidden="true"></span>
+      <div class="tray-rail-mid">
+        <span class="tray-id">Tray · ER-01</span>
+        <span class="tray-id">Lab plate</span>
+      </div>
+      <span class="tray-screw" aria-hidden="true"></span>
+    </div>
+
+    <div class="tray-bed">
+      <div class="tray-rubric">Research specimens</div>
+      <div class="wells-primary">
+        <a class="well well-primary" href="https://edwinrosero.com/research/">
+          <span class="well-mark" aria-hidden="true">∂</span>
+          <div class="well-cat">Spec. 01</div>
+          <h2 class="well-title">The Discrete Jacobian</h2>
+          <p class="well-caption">Ancestral injectivity, causal history, and graph rewriting</p>
+          <span class="well-enter">Enter</span>
+          <span class="well-pin" aria-hidden="true"></span>
+        </a>
+        <a class="well well-primary" href="https://doi.org/10.5281/zenodo.21814869" target="_blank" rel="noopener">
+          <span class="well-mark" aria-hidden="true">z</span>
+          <div class="well-cat">Spec. 02</div>
+          <h2 class="well-title">Zarankiewicz</h2>
+          <p class="well-caption">Exact terms for OEIS A006615 and A006625</p>
+          <span class="well-enter">Enter</span>
+          <span class="well-pin" aria-hidden="true"></span>
+        </a>
+      </div>
+
+      <div class="tray-rubric rubric-gap">Creations</div>
+      <div class="wells-quiet-wrap">
+        <div class="wells-quiet">
+          <a class="well" href="https://snares.ai" target="_blank" rel="noopener">
+            <span class="well-mark" aria-hidden="true">◎</span>
+            <div class="well-cat">Spec. 03</div>
+            <h2 class="well-title">SNARES</h2>
+            <p class="well-caption">AI-powered sound reactive visualizer</p>
+            <span class="well-pin" aria-hidden="true"></span>
+          </a>
+          <a class="well" href="https://gravitygolf.xyz" target="_blank" rel="noopener">
+            <span class="well-mark" aria-hidden="true">●</span>
+            <div class="well-cat">Spec. 04</div>
+            <h2 class="well-title">Gravity Golf</h2>
+            <p class="well-caption">Physics-based golf game</p>
+            <span class="well-pin" aria-hidden="true"></span>
+          </a>
+          <a class="well" href="https://edwinrosero.com/fringe/">
+            <span class="well-mark" aria-hidden="true">≈</span>
+            <div class="well-cat">Spec. 05</div>
+            <h2 class="well-title">Fringe</h2>
+            <p class="well-caption">Photonic synthesizer · web or plugin</p>
+            <span class="well-pin" aria-hidden="true"></span>
+          </a>
+          <a class="well" href="https://www.instagram.com/walkthroughwonder/" target="_blank" rel="noopener">
+            <span class="well-mark" aria-hidden="true">⬡</span>
+            <div class="well-cat">Spec. 06</div>
+            <h2 class="well-title">Walkthroughwonder</h2>
+            <p class="well-caption">Creative technology &amp; visual experiments</p>
+            <span class="well-pin" aria-hidden="true"></span>
+          </a>
+          <a class="well" href="https://edwinrosero.com/research/app">
+            <span class="well-mark" aria-hidden="true">◇</span>
+            <div class="well-cat">Spec. 07</div>
+            <h2 class="well-title">Topological Light Propagation</h2>
+            <p class="well-caption">Companion interactive multiway-system explorer</p>
+            <span class="well-pin" aria-hidden="true"></span>
+          </a>
+          <a class="well" href="https://annaseaman.medium.com/a-bitcoin-key-turned-money-into-poetry-55c1ba9fa408" target="_blank" rel="noopener">
+            <span class="well-mark" aria-hidden="true">✦</span>
+            <div class="well-cat">Spec. 08</div>
+            <h2 class="well-title">Press</h2>
+            <p class="well-caption">A Bitcoin Key Turned Money Into Poetry</p>
+            <span class="well-pin" aria-hidden="true"></span>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="tray-edge">
+      <span class="tray-screw" aria-hidden="true"></span>
+      <span class="tray-etch">
+        <a href="https://patents.google.com/patent/US11803885B2/en" target="_blank" rel="noopener">US 11,803,885</a>
+        <span class="sep" aria-hidden="true">·</span>
+        <a href="https://www.tate.org.uk/whats-on/tate-britain/bp-loud-tate-2014-code" target="_blank" rel="noopener">Tate 2014</a>
+      </span>
+      <span class="tray-screw" aria-hidden="true"></span>
+    </div>
+  </section>
+
+  <p class="bio">
+    I'm drawn to the moment where intent slips, and something else appears:
+    patterns that listen back, structures that react, atmospheres that feel
+    almost alive. If there's a theme, it's emergence.
+  </p>
+</main>
+</body>
+</html>
